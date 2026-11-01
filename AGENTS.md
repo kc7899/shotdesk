@@ -47,6 +47,6 @@
 
 `GET /api/settings` 的 `video_providers` 是脱敏云端连接列表；使用 `POST /api/settings {video_providers:[...]}` 配置。每项包含稳定 `id`、`name`、`protocol`（ark/minimax/replicate/fal）、`url`、真实 `model`、`api_key`、`resolution`、`max_references`、`modes`（text/first_frame/reference）、`enabled`。列表整体替换，保留其他服务；空密钥保留，clear_key:true 清除。接口只返回 key_configured。不得将密钥写入项目或提示词。无活动任务时才能改连接。
 
-配置后以模型目录返回的 `cloud-<id>` 选择项目 video_model 或镜头 video_override.model，继续使用现有 /generate 和 /generate-batch，不直接调用服务商绕过队列。用 /preview-prompt 核对实际造型、图序；图片通过 data URL 传递。官方完整 H3 的协议是 minimax，model 为 MiniMax-H3，分辨率为 768P/2K，4–15整秒；不要用 Max/Highspeed/Lite 的名字猜测其质量或能力。项目分辨率使用 preset:768p 或 2k；Seedance 使用所选服务实际支持的档位。fal 每种端点单独配置对应 modes，不把单一端点宣称支持所有方式。当前云端尚不支持音视频参考、尾帧或自定义宽高。
+配置后以模型目录返回的 `cloud-<id>` 选择项目 video_model 或镜头 video_override.model，继续使用现有 /generate 和 /generate-batch，不直接调用服务商绕过队列。用 /preview-prompt 核对实际造型、图序；图片通过 data URL 传递。官方完整 H3 的协议是 minimax，model 为 MiniMax-H3，分辨率为 768P/2K，4–15整秒；不要用 Max/Highspeed/Lite 的名字猜测其质量或能力。项目分辨率使用 preset:768p 或 2k；Seedance 使用所选服务实际支持的档位。fal 每种端点单独配置对应 modes，不把单一端点宣称支持所有方式。火山方舟参考资产模式可通过镜头 cloud_use_audio:true、cloud_use_video:true 显式引用 audio_source/reference_audio、reference_video；其余云端协议尚不传音视频参考。视频需要该服务 public_media_url 为已配置的公网HTTPS片场地址，平台创建6小时有效的单文件签名链接，不直接传内网URL，也不自动开放网络。音频和图像使用data URL；未勾选不发送。尾帧和自定义宽高仍未支持。
 
 云端任务记录 cloud_task_id 和 cloud_provider，服务重启后按原ID查询，不重新提交。提交阶段中断而无ID时结果不明，先人工核对供应商记录。停止使用平台原接口；官方 H3 运行中不能立即取消，cancelling 期间可能继续计费，不得宣称资源已释放。配置/模拟接口通过不等于真实账号出片或质量已验收。

@@ -1,5 +1,5 @@
 """Explicit cloud video protocols; credentials stay in private service settings."""
-import copy,json,re,time,urllib.request,urllib.error,urllib.parse
+import copy,json,re,time,hashlib,hmac,urllib.request,urllib.error,urllib.parse
 PROTOCOLS={'ark','minimax','replicate','fal'}
 DEFAULTS={'ark':'https://ark.cn-beijing.volces.com/api/v3','minimax':'https://api.minimax.io','replicate':'https://api.replicate.com/v1','fal':'https://queue.fal.run'}
 OP=urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -7,7 +7,7 @@ def validate_profiles(rows,old,url_validator):
     if not isinstance(rows,list) or len(rows)>20:raise ValueError('云端视频服务须为列表，最多20项')
     previous={x['id']:x for x in old};result=[];seen=set()
     for row in rows:
-        if not isinstance(row,dict) or set(row)-{'id','name','protocol','url','model','api_key','clear_key','enabled','max_references','modes','resolution','key_configured'}:raise ValueError('云端视频服务字段不正确')
+        if not isinstance(row,dict) or set(row)-{'id','name','protocol','url','model','api_key','clear_key','enabled','max_references','modes','resolution','key_configured','public_media_url'}:raise ValueError('云端视频服务字段不正确')
         ident=row.get('id','');protocol=row.get('protocol')
         if not isinstance(ident,str) or not re.fullmatch(r'[a-zA-Z0-9_-]{1,60}',ident) or ident in seen:raise ValueError('云端服务ID无效或重复')
         seen.add(ident)
@@ -15,6 +15,9 @@ def validate_profiles(rows,old,url_validator):
         item=copy.deepcopy(row);item.pop('key_configured',None);item['url']=url_validator(row.get('url') or DEFAULTS[protocol]);item['name']=str(row.get('name') or ident).strip()[:100]
         model=row.get('model','')
         if not isinstance(model,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_./:-]{0,179}',model) or '..' in model:raise ValueError('请填写服务实际使用的模型ID')
+        public=url_validator(row.get('public_media_url',''))
+        if public and not public.startswith('https://'):raise ValueError('素材访问地址须为公网HTTPS地址')
+        item['public_media_url']=public
         item['model']=model
         refs=row.get('max_references',9)
         if isinstance(refs,bool) or not isinstance(refs,int) or not 0<=refs<=30:raise ValueError('参考图片数量须为0–30')
@@ -36,7 +39,7 @@ def validate_profiles(rows,old,url_validator):
 def public_profiles(rows):return [{**{k:v for k,v in x.items() if k!='api_key'},'key_configured':bool(x.get('api_key'))} for x in rows]
 def profile(settings,model):return next((x for x in settings.read().get('video_providers',[]) if 'cloud-'+x['id']==model and x.get('enabled',True)),None)
 def catalog(settings):
-    return [{'id':'cloud-'+x['id'],'display_name':x['name'],'provider':x['protocol'],'modes':x['modes'],'max_references':x['max_references'],'supports_resolution':True,'canonical_model':'cloud-'+x['id'],'legacy_resolution':None,'operation':'generate','verification':'configured-unverified','available':bool(x.get('api_key')),'requires_image':False} for x in settings.read().get('video_providers',[]) if x.get('enabled',True)]
+    return [{'id':'cloud-'+x['id'],'display_name':x['name'],'provider':x['protocol'],'modes':x['modes'],'max_references':x['max_references'],'supports_resolution':True,'canonical_model':'cloud-'+x['id'],'legacy_resolution':None,'operation':'generate','verification':'configured-unverified','available':bool(x.get('api_key')),'requires_image':False,'supports_media_reference':x['protocol']=='ark','public_media_configured':bool(x.get('public_media_url'))} for x in settings.read().get('video_providers',[]) if x.get('enabled',True)]
 def request(p,path,body=None,method=None):
     key=p.get('api_key')
     if not key:raise ValueError('请先在服务连接中设置云端视频API密钥')
@@ -65,20 +68,24 @@ def payload(p,b):
     duration=b.get('duration',4)
     if isinstance(duration,bool) or float(duration)!=int(duration) or not 1<=int(duration)<=30:raise ValueError('云端视频时长须为1–30秒整数，以所选模型支持范围为准')
     duration=int(duration);refs=b.get('image') or [];refs=[refs] if isinstance(refs,str) else refs
+    audios=b.get('metadata',{}).get('reference_audios',[]);videos=b.get('metadata',{}).get('reference_videos',[])
     first=b.get('first_frame_image');protocol=p['protocol'];resolution=b.get('cloud_resolution') or p['resolution']
-    if first and refs:raise ValueError('首帧和资产参考不能混用')
+    if (audios or videos) and protocol!='ark':raise ValueError('此服务尚未接通音视频联合参考')
+    if first and (refs or audios or videos):raise ValueError('首帧和资产参考不能混用')
     if len(refs)>p['max_references']:raise ValueError('参考图超过云端模型配置名额')
-    mode='first_frame' if first else 'reference' if refs else 'text'
+    mode='first_frame' if first else 'reference' if refs or audios or videos else 'text'
     if mode not in p['modes']:raise ValueError('云端模型未配置此生成方式')
     text=b['prompt']
     if protocol in ('ark','minimax'):
         content=[{'type':'text','text':text}]
         content.extend({'type':'image_url','image_url':{'url':v},'role':'reference_image'} for v in refs)
+        content.extend({'type':'video_url','video_url':{'url':v},'role':'reference_video'} for v in videos)
+        content.extend({'type':'audio_url','audio_url':{'url':v},'role':'reference_audio'} for v in audios)
         if first:content.append({'type':'image_url','image_url':{'url':first},'role':'first_frame'})
         result={'model':p['model'],'content':content,'duration':duration,'resolution':resolution,'ratio':b.get('aspect_ratio','16:9')}
         if protocol=='minimax':
             if p['model']=='MiniMax-H3' and (not 4<=duration<=15 or resolution not in ('768P','2K')):raise ValueError('MiniMax-H3官方完整模型支持4–15秒，768P或2K')
-        else:result.update(generate_audio=b.get('generate_audio',True),seed=b.get('seed',-1))
+        else:result.update(generate_audio=b.get('generate_audio',True),seed=b.get('seed',-1),watermark=False)
         return result
     result={'prompt':text,'duration':str(duration) if protocol=='fal' else duration,'resolution':resolution,'aspect_ratio':('auto' if protocol=='fal' else 'adaptive') if first else b.get('aspect_ratio','16:9'),'generate_audio':b.get('generate_audio',True)}
     if protocol=='fal':
@@ -127,6 +134,42 @@ def cancel(p,ident):
     else:request(p,path+'/cancel',{},method='POST' if protocol=='replicate' else 'PUT')
     return poll(p,ident)[0] in ('completed','failed','canceled','cancelled','expired')
 
+def media_signature(app,pid,jid,index,expires,digest):
+    message=f'{pid}/{jid}/{index}/{expires}/{digest}'
+    key=app.SETTINGS.session_secret();key=key.encode() if isinstance(key,str) else key
+    return hmac.new(key,message.encode(),hashlib.sha256).hexdigest()
+
+def prepare_media(queue,pid,j,p):
+    body=copy.deepcopy(j['request']);sources=body.pop('cloud_video_sources',[])
+    if not sources:return body
+    if not p.get('public_media_url'):raise ValueError('参考视频需要一次性设置素材公网HTTPS地址；不能把本地路径发给火山')
+    expires=int(time.time())+21600;grants=[];urls=[]
+    for index,url in enumerate(sources):
+        if not url.startswith('/media/'+pid+'/media/'):raise ValueError('参考视频须属于当前项目')
+        path=queue.app.local_file(url);digest=hashlib.sha256(path.read_bytes()).hexdigest()
+        sig=media_signature(queue.app,pid,j['id'],index,expires,digest)
+        grants.append({'url':url,'expires':expires,'sha256':digest})
+        urls.append(p['public_media_url']+f'/cloud-media/{pid}/{j["id"]}/{index}?expires={expires}&signature={sig}')
+    j['cloud_media_grants']=grants;queue.persist(pid,j)
+    body.setdefault('metadata',{})['reference_videos']=urls
+    return body
+
+def granted_media(app,path,query):
+    match=re.fullmatch(r'/cloud-media/([a-f0-9]{32})/([a-f0-9]{32})/(\d+)',path)
+    if not match:raise ValueError('素材访问链接无效')
+    pid,jid,index=match.groups();index=int(index)
+    try:
+        expires=int(query['expires'][0]);signature=query['signature'][0]
+        if expires<int(time.time()) or expires>time.time()+21600:raise ValueError()
+        job=json.loads(app.job_path(pid,jid).read_text());grant=job['cloud_media_grants'][index]
+        expected=media_signature(app,pid,jid,index,expires,grant['sha256'])
+        if grant['expires']!=expires or not hmac.compare_digest(signature,expected):raise ValueError()
+        if not grant['url'].startswith('/media/'+pid+'/media/'):raise ValueError()
+        file=app.local_file(grant['url'])
+        if hashlib.sha256(file.read_bytes()).hexdigest()!=grant['sha256']:raise ValueError()
+        return file
+    except (OSError,KeyError,IndexError,TypeError,ValueError):raise ValueError('素材访问链接无效或已过期') from None
+
 def run(queue,pid,j):
     p=profile(queue.app.SETTINGS,j['request']['model'])
     if not p:raise ValueError('该云端服务已移除或禁用；请恢复原配置以查询任务')
@@ -134,9 +177,12 @@ def run(queue,pid,j):
     if j.get('cloud_provider') and j['cloud_provider']!=snapshot:raise ValueError('云端任务服务配置已变更，不能使用其他地址或模型查询原任务')
     if not j.get('cloud_task_id'):
         with queue.app.LOCK:
-            queue.check(j);j.update(transport='cloud',phase='cloud_submitting',cloud_provider=snapshot);queue.persist(pid,j)
+            queue.check(j);j.update(transport='cloud',phase='cloud_preparing');queue.persist(pid,j)
         # One submission only, persist its ID even if cancellation arrived during HTTP.
-        ident=submit(p,j['request'])
+        body=prepare_media(queue,pid,j,p)
+        with queue.app.LOCK:
+            queue.check(j);j.update(phase='cloud_submitting',cloud_provider=snapshot);queue.persist(pid,j)
+        ident=submit(p,body)
         with queue.app.LOCK:j.update(cloud_task_id=ident,submitted_at=time.time(),phase='upstream_queue');queue.persist(pid,j)
     deadline=time.monotonic()+7200
     while time.monotonic()<deadline:

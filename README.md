@@ -73,11 +73,13 @@ docker compose up -d --build
 
 每种协议都支持自定义服务地址；中转站必须兼容所选协议，不是任意网址都能使用。默认模型 ID 是配置示例，请核对账号实际开放的版本、能力和收费。
 
-角色采用所选造型图，参考图按关联资产顺序传入。首帧模式只传首帧，不混用资产图。当前云端接入范围是文字、首帧和图片资产参考；尚未接通云端音视频参考或首尾帧输入。图片通过 data URL 发送，无需公开本地媒体地址。
+角色采用所选造型图，参考图按关联资产顺序传入。首帧模式只传首帧，不混用资产图。云端支持文字、首帧和图片资产参考。火山方舟另支持在资产参考模式中显式勾选音频、视频联合参考：图片和音频用 data URL；视频由平台生成6小时有效、绑定单个任务和文件内容的签名链接。上传/生成音频可继续使用 IndexTTS。未勾选的素材不传入，首帧与联合参考不混用。尾帧输入仍未接通。
+
+使用火山参考视频前，在该服务配置中填写“素材公网地址”，例如你已部署并可从公网访问的 Shotdesk HTTPS 域名。只需配置一次，平台自动产生每段视频的临时链接；不自动打洞、打开端口或公开整个目录。纯局域网地址无法供火山下载视频，未配置会在付费提交前提示。Files API 的 file_id 不等于视频生成的 asset:// 素材 ID，本版不会混用。
 
 任务进入统一队列，结果下载到项目并保留历史。密钥仅保存在私有服务设置，留空保留、勾选清除才删除。保存设置不产生付费任务；提交结果不明时不会自动重提。停止受服务商限制：官方 H3 运行中无法立即取消，平台等待上游结束，期间可能继续计费。本次接口测试使用模拟服务，实际账号推理和画面质量须单独验证。
 
-Cloud video providers are configured under **Service connections → Cloud video**. Supported protocols: Volcano Ark / compatible gateways, official MiniMax H3 V2, Replicate Seedance, and fal Seedance. Configure your own key and actual model ID, then select the service in project model settings. The integration currently supports text, first-frame and image-reference generation. Credentials stay private; jobs share the queue and downloaded version history. Saving does not submit a paid job. Running official H3 jobs cannot be cancelled immediately. Protocol tests use local fake services; live paid generation still requires separate verification.
+Cloud video providers are configured under **Service connections → Cloud video**. Supported protocols: Volcano Ark / compatible gateways, official MiniMax H3 V2, Replicate Seedance, and fal Seedance. Configure your own key and actual model ID, then select the service in project model settings. The integration supports text, first-frame and image-reference generation. Ark additionally supports explicitly enabled audio/video references alongside images. Audio uses data URLs; video uses single-file signed links valid for six hours and requires a one-time public HTTPS studio URL. No automatic public exposure or network tunnelling is performed. Credentials stay private; jobs share the queue and downloaded version history. Saving does not submit a paid job. Running official H3 jobs cannot be cancelled immediately. Protocol tests use local fake services; live paid generation still requires separate verification.
 
 ## 数据、备份与访问
 

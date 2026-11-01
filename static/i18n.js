@@ -5,6 +5,14 @@ const storageKey='shotdesk.uiLanguage';
 let locale='zh';try{locale=localStorage.getItem(storageKey)==='en'?'en':'zh'}catch{}
 const translations={};
 const entries=`
+素材公网地址（视频参考）|Public media URL (video references)
+引用所选音频|Use selected audio reference
+引用参考视频|Use video reference
+上传参考音频|Upload audio reference
+上传参考视频|Upload video reference
+配音与已有音频|Speech and existing audio
+音频直接传入；视频由平台生成临时链接，需要服务配置中的素材公网地址。未勾选的素材不会使用。提示词中用“音频1”“视频1”说明用途。|Audio is sent directly. Video uses a temporary signed link and requires a public media URL in service settings. Unchecked inputs are not sent. Describe their purpose as audio 1 / video 1 in the prompt.
+
 云端视频|Cloud video
 Seedance、MiniMax H3 官方完整模型及兼容中转服务；按服务商计费。|Seedance, full official MiniMax H3, and compatible gateways; provider charges apply.
 ＋ 添加云端视频服务|＋ Add cloud video provider

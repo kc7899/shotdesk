@@ -108,3 +108,5 @@ docker compose exec shotdesk python3 /app/scripts/shotdesk_smoke.py --image-mode
 6. 视频不播放：实际下载并用 ffprobe 检查；合片需要工作台执行环境内的 FFmpeg。
 
 停止、重启和恢复行为及备份操作见 [operations.md](operations.md)。支持边界见 [release-notes.md](release-notes.md)。
+
+云端联合参考：火山方舟可直接传入本地图片和WAV/MP3音频；参考视频须在云端服务中一次性配置 `public_media_url`，即已部署的公网HTTPS片场地址。平台自动生成6小时有效的单文件签名链接，不开放整个媒体目录。反向代理须允许 `/cloud-media/` 的签名访问，不能再要求供应商登录。没有公网地址时，纯局域网部署仍可使用图片与音频参考，但视频参考会在付费提交前被阻止；不会自动创建隧道或修改防火墙。每镜当前可选1段参考视频和1段参考音频，可与多张资产图联合使用。

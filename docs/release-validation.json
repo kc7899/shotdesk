@@ -100,5 +100,25 @@
     "live_cloud_inference_verified": false,
     "reason": "No provider API key supplied; no paid generation submitted",
     "existing_local_models_preserved": true
+  },
+  "ark_multimodal_maintenance": {
+    "date": "2026-11-02",
+    "public_tests_run": 305,
+    "optional_legacy_skips": 9,
+    "development_tests_run": 481,
+    "frontend_suites_passed": 12,
+    "validated": [
+      "explicit image/audio/video roles",
+      "unchecked media excluded",
+      "WAV data URL",
+      "watermark false",
+      "signed single-file access without login",
+      "normal media remains protected",
+      "invalid/expired/tampered links rejected",
+      "file content hash binding"
+    ],
+    "video_transport": "six-hour signed URL; requires user-configured public HTTPS studio URL",
+    "public_endpoint_configured_on_live_host": false,
+    "live_paid_generation_verified": false
   }
 }

@@ -310,7 +310,9 @@ def local_compile_shot_prompt(p,shot,kind,inputs):
 def compile_shot_prompt(p,shot,kind,inputs):
     text,bindings=local_compile_shot_prompt(p,shot,kind,inputs)
     provider=cloud_video.profile(SETTINGS,video_model(shot,p)) if kind=='video' else None
-    if provider:text=cloud_video.compile_prompt(provider,text,inputs)
+    if provider:
+        text=cloud_video.compile_prompt(provider,text,inputs)
+        if provider['protocol']=='ark' and video_mode(shot,p)=='reference':text+=('\n视频1为本镜所选参考视频。' if shot.get('cloud_use_video') else '')+('\n音频1为本镜所选参考音频。' if shot.get('cloud_use_audio') else '')
     return text,bindings
 
 def preview_shot_prompt(pid,body):
@@ -338,7 +340,9 @@ def preview_shot_prompt(pid,body):
     if any(not x['url'] for x in inputs):raise ValueError('参考图片缺失，请先生成或上传')
     if len({x['asset_id'] for x in inputs})!=len(inputs):raise ValueError('关联资产不能重复')
     compiled,bindings=compile_shot_prompt(p,shot,kind,inputs)
-    return {'kind':kind,'original_prompt':shot.get(kind+'_prompt',''),'compiled_prompt':compiled,'reference_bindings':bindings,'image_inputs':inputs,'asset_ids':shot.get('asset_ids',[]),'character_looks':shot.get('character_looks',{}),'notice':'此预览不提交任务；身份绑定不保证模型正确说台词'}
+    cloud=cloud_video.profile(SETTINGS,video_model(shot,p)) if kind=='video' else None
+    cloud_refs=bool(cloud and cloud['protocol']=='ark' and mode=='reference')
+    return {'kind':kind,'original_prompt':shot.get(kind+'_prompt',''),'compiled_prompt':compiled,'reference_bindings':bindings,'image_inputs':inputs,'asset_ids':shot.get('asset_ids',[]),'character_looks':shot.get('character_looks',{}),'cloud_audio_reference':resolve_audio(p,shot.get('audio_source'),shot.get('reference_audio')) if cloud_refs and shot.get('cloud_use_audio') else None,'cloud_video_reference':shot.get('reference_video') if cloud_refs and shot.get('cloud_use_video') else None,'notice':'此预览不提交任务；身份绑定不保证模型正确说台词'}
 
 def validate_resources(p):
     assets={a['id']:a for a in p['assets']}
@@ -629,6 +633,19 @@ def launch(pid, target, target_id, kind, batch_id=None):
                 body.setdefault('metadata',{}).update(gen_mode='allReference',reference_videos=[reference(source_video)])
         cloud=cloud_video.profile(SETTINGS,body['model']) if kind=='video' else None
         if cloud:
+            if any(key in obj and not isinstance(obj[key],bool) for key in ('cloud_use_audio','cloud_use_video')):raise ValueError('音视频引用开关须为布尔值')
+            if cloud['protocol']=='ark' and mode=='reference' and obj.get('cloud_use_audio'):
+                audio_input=resolve_audio(p,obj.get('audio_source'),obj.get('reference_audio'));source_audio=audio_input['url']
+                if not source_audio.startswith('/media/'+pid+'/media/'):raise ValueError('参考音频须属于当前项目')
+                if local_file(source_audio).suffix.lower() not in ('.wav','.mp3'):raise ValueError('火山参考音频请使用WAV或MP3文件')
+                audio_data=reference(source_audio).replace('data:audio/x-wav;','data:audio/wav;').replace('data:audio/mpeg;','data:audio/mp3;')
+                body.setdefault('metadata',{})['reference_audios']=[audio_data]
+            if cloud['protocol']=='ark' and mode=='reference' and obj.get('cloud_use_video'):
+                source_video=obj.get('reference_video')
+                if not source_video or not source_video.startswith('/media/'+pid+'/media/'):raise ValueError('请上传本项目的参考视频')
+                if local_file(source_video).suffix.lower() not in ('.mp4','.mov'):raise ValueError('火山参考视频请使用MP4或MOV文件')
+                if not cloud.get('public_media_url'):raise ValueError('请先在云端服务设置中填写素材公网HTTPS地址，平台会自动生成临时访问链接')
+                body['cloud_video_sources']=[source_video]
             config=obj.get('video_resolution') or (obj.get('video_override') or {}).get('resolution') or p.get('video_resolution')
             if config:
                 preset=config['preset'];allowed={'768p':'768P','2k':'2K'} if cloud['protocol']=='minimax' else {'480p':'480p','720p':'720p','1080p':'1080p'}
@@ -638,6 +655,7 @@ def launch(pid, target, target_id, kind, batch_id=None):
         if target=='shot':
             if kind=='image' and body['model'] in ('RedCraft-Package-FlashVSR-Image-2x','RedCraft-Package-ClearReality-Image-4x') and scan_prompt_mentions(p,obj,prompt,True):raise ValueError('图片增强只使用当前图，不支持@资产引用')
             body['prompt'],reference_bindings=compile_shot_prompt(p,obj,kind,image_inputs)
+
         if cloud:
             cloud_video.payload(cloud,body)  # Validate before charging or enqueueing.
         j={'id':uid(),'kind':kind,'target':target,'target_id':target_id,'status':'queued','created':time.time(),'request':body,'source_image':source,'source_images':source_images,'source_audio':source_audio,'source_video':source_video,'audio_input':audio_input,'image_inputs':image_inputs,'video_mode':mode,'model':body['model'],'title':obj.get('name') or obj.get('title') or target_id,'transport':'cloud' if cloud else 'comfy','video_duration':body.get('duration'),'video_resolution':resolution_input,'original_prompt':original_prompt,'reference_bindings':reference_bindings,'batch_id':batch_id}
@@ -1404,6 +1422,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path=urllib.parse.unquote(self.path.split('?')[0])
+            if path.startswith('/cloud-media/'):
+                try:file=cloud_video.granted_media(AppContext(),path,urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query))
+                except ValueError:return self.reply({'error':'素材访问链接无效或已过期'},403)
+                return self.serve_media(file)
             if path=='/login':
                 raw=(ROOT/'static/login.html').read_bytes();self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw);return
             if path=='/i18n.js':return self.serve_media(ROOT/'static/i18n.js')
