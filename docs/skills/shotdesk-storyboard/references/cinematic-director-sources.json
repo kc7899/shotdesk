@@ -1,0 +1,26 @@
+{
+  "repository": "wuwangzhang1216/DirectorSKILL",
+  "commit": "c65ae0d14457053efb1e354c7e7f7e120d97fad1",
+  "files": [
+    {
+      "file": "SKILL.md",
+      "sha256": "543be6ece626beaa7dbc36b8225dcdc0b763d8044563189e842b306bb5cfd792",
+      "url": "https://github.com/wuwangzhang1216/DirectorSKILL/blob/c65ae0d14457053efb1e354c7e7f7e120d97fad1/SKILL.md"
+    },
+    {
+      "file": "references/blocking-and-staging.md",
+      "sha256": "16203dd654d61459df6eabb7754d5b450a17774ad18484f27a1c05e73d392402",
+      "url": "https://github.com/wuwangzhang1216/DirectorSKILL/blob/c65ae0d14457053efb1e354c7e7f7e120d97fad1/references/blocking-and-staging.md"
+    },
+    {
+      "file": "references/continuity-bible.md",
+      "sha256": "92aad85488aee0fcad6d432ce29f66286d66245bb2a17499a325afb356c74826",
+      "url": "https://github.com/wuwangzhang1216/DirectorSKILL/blob/c65ae0d14457053efb1e354c7e7f7e120d97fad1/references/continuity-bible.md"
+    },
+    {
+      "file": "LICENSE",
+      "sha256": "df731ea2e1ffd3b8890ad246da3df96ceba3301c16fb4970c16811df4c728b56",
+      "url": "https://github.com/wuwangzhang1216/DirectorSKILL/blob/c65ae0d14457053efb1e354c7e7f7e120d97fad1/LICENSE"
+    }
+  ]
+}

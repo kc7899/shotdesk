@@ -1,0 +1,5 @@
+Shotdesk is a local, single-user short-drama workbench.
+Read /AGENTS.md, /api/agent-info, /api/shot-schema and /api/asset-schema before acting.
+Current default storyboard: h3-structured-v2. Do not replace it with historical Huobao rules.
+Service settings: /api/settings (secrets redacted). Workflows: /api/workflows.
+Use stable project/asset/look/version IDs, not array positions or guessed filesystem paths.

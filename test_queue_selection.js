@@ -1,0 +1,14 @@
+const uiContext=()=>{const c={};require('vm').runInNewContext(require('fs').readFileSync('static/i18n.js','utf8'),c);return c.ShotdeskI18n.text};
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const source=fs.readFileSync('static/app.js','utf8');
+let writes=0,selected=false;
+const list={scrollTop:12,contains:n=>n==='log',querySelectorAll:()=>[],set innerHTML(v){writes++},get innerHTML(){return ''}};
+const nodes={queueList:list};
+const node=()=>({hidden:false,textContent:'',disabled:false,classList:{toggle(){}},title:''});
+const context={ui:uiContext(),queueAll:[{id:'test',status:'failed',kind:'text',created:1,error:'错误信息',project_name:'测试'}],queueFilter:'all',queueStopBusy:false,queueStopIds:[],activeTask:j=>['queued','running','cancelling'].includes(j.status),taskTime:()=>'',elapsed:()=>'',esc:String,Date,window:{getSelection:()=>({isCollapsed:!selected,anchorNode:'log',focusNode:'log'})},$:id=>nodes[id.slice(1)]||(nodes[id.slice(1)]=node())};
+vm.createContext(context);vm.runInContext(source.slice(source.indexOf('function queueTextSelected('),source.indexOf('async function refreshQueue(')),context);
+context.renderQueue();assert.equal(writes,1);
+context.renderQueue();assert.equal(writes,1,'unchanged history should keep DOM');
+selected=true;context.queueAll[0].error='新错误';context.renderQueue();assert.equal(writes,1,'selection should survive polling');
+selected=false;context.renderQueue();assert.equal(writes,2,'apply latest state after selection clears');
+assert.ok(list._queueMarkup.includes('复制错误'));console.log('queue selection checks passed');

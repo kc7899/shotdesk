@@ -1,0 +1,35 @@
+{
+  "checked_at": "2026-11-01",
+  "original_code_license": "MIT",
+  "checks": [
+    {
+      "source": "MiniMax-AI/MiniMax-H3",
+      "commit": "d21241f0a4b3acbb34c97dae47fa417b7065e438",
+      "tree_url": "https://api.github.com/repos/MiniMax-AI/MiniMax-H3/git/trees/d21241f0a4b3acbb34c97dae47fa417b7065e438?recursive=1",
+      "finding": "No LICENSE/COPYING/NOTICE path was found in the pinned tree; redistribution permission for verbatim references was not established.",
+      "release_action": "Exclude h3-official-SKILL.md, h3-base-en.txt and h3-ref-en.txt. Keep source links/hashes. Default h3-structured-v2 works without these files."
+    },
+    {
+      "source": "wuwangzhang1216/DirectorSKILL",
+      "commit": "c65ae0d14457053efb1e354c7e7f7e120d97fad1",
+      "license": "MIT",
+      "notice": "docs/skills/shotdesk-storyboard/references/cinematic-director-LICENSE.txt",
+      "action": "Retain copyright and MIT notice with provenance."
+    },
+    {
+      "source": "Optional historical Huobao package",
+      "license": "CC-BY-NC-SA-4.0 as recorded in local upstream LICENSE",
+      "release_action": "Not distributed; no public source relicensing asserted."
+    },
+    {
+      "source": "Local external media adapter and private workflows",
+      "release_action": "Not distributed; public package uses workflow_transport.py and user-provided API workflows."
+    },
+    {
+      "source": "Python and Debian FFmpeg packages",
+      "release_action": "Retain distribution-installed license files in image; no model weights shipped."
+    }
+  ],
+  "scope": "Source inventory and packaging decisions, not a blanket license over third-party material. Original Shotdesk code uses MIT; third-party materials retain their terms.",
+  "owner_decision_date": "2026-11-01"
+}

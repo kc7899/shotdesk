@@ -1,0 +1,31 @@
+.git
+.github
+.env
+.env.*
+.local
+data
+backups
+dist
+__pycache__
+**/__pycache__
+*.pyc
+*.bak*
+*.before-*
+*-result.json
+*-state.json
+screenshot*.png
+workflows/*.json
+secrets
+# Optional legacy Huobao package is deliberately not redistributed in the portable image.
+docs/huobao-native
+huobao_native.py
+# Internal historical reports are not installation documentation.
+docs/history
+docs/designs
+docs/reviews
+docs/verification-*
+
+# Upstream originals have no confirmed redistribution grant at the pinned commit.
+docs/skills/shotdesk-storyboard/references/h3-official-SKILL.md
+docs/skills/shotdesk-storyboard/references/h3-base-en.txt
+docs/skills/shotdesk-storyboard/references/h3-ref-en.txt

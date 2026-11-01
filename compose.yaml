@@ -1,0 +1,28 @@
+services:
+  shotdesk:
+    build: .
+    image: shotdesk:local
+    init: true
+    restart: unless-stopped
+    environment:
+      SHOTDESK_HOST: 0.0.0.0
+      COMFY_URL: http://host.docker.internal:8188
+      SHOTDESK_ACCESS_TOKEN: ${SHOTDESK_ACCESS_TOKEN:-}
+      SHOTDESK_REQUIRE_AUTH: ${SHOTDESK_REQUIRE_AUTH:-0}
+    ports:
+      - '${SHOTDESK_BIND:-127.0.0.1}:${SHOTDESK_PORT:-1258}:1258'
+    volumes:
+      - shotdesk-data:/app/data
+      - shotdesk-workflows:/app/workflows
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: '2'}
+volumes:
+  shotdesk-data:
+  shotdesk-workflows:

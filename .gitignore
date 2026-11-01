@@ -1,0 +1,26 @@
+.env
+.env.*
+!.env.example
+.local/
+data/
+workflows/*.json
+!workflows/.gitkeep
+backups/
+dist/
+__pycache__/
+*.pyc
+*.bak*
+*.before-*
+*-result.json
+*-state.json
+screenshot*.png
+*.log
+secrets/
+
+private-settings.json
+*smoke-report.json
+
+# Links/hashes retained; verbatim references not licensed for public redistribution.
+docs/skills/shotdesk-storyboard/references/h3-official-SKILL.md
+docs/skills/shotdesk-storyboard/references/h3-base-en.txt
+docs/skills/shotdesk-storyboard/references/h3-ref-en.txt

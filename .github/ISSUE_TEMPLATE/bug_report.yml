@@ -1,0 +1,28 @@
+name: Bug report / 问题反馈
+description: Report a reproducible Shotdesk problem without credentials or private media.
+body:
+  - type: markdown
+    attributes:
+      value: "Do not paste API keys, tokens, settings.json, full project backups or personal media. 请勿提交密钥或私人素材。"
+  - type: input
+    id: version
+    attributes:
+      label: Version and installation method / 版本与安装方式
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps and expected result / 操作步骤与预期
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result and sanitized error / 实际结果与脱敏错误
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: OS, model service type, workflow and optional diagnostic report / 环境与可选诊断报告
