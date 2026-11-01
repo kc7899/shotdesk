@@ -50,3 +50,18 @@
 配置后以模型目录返回的 `cloud-<id>` 选择项目 video_model 或镜头 video_override.model，继续使用现有 /generate 和 /generate-batch，不直接调用服务商绕过队列。用 /preview-prompt 核对实际造型、图序；图片通过 data URL 传递。官方完整 H3 的协议是 minimax，model 为 MiniMax-H3，分辨率为 768P/2K，4–15整秒；不要用 Max/Highspeed/Lite 的名字猜测其质量或能力。项目分辨率使用 preset:768p 或 2k；Seedance 使用所选服务实际支持的档位。fal 每种端点单独配置对应 modes，不把单一端点宣称支持所有方式。火山方舟参考资产模式可通过镜头 cloud_use_audio:true、cloud_use_video:true 显式引用 audio_source/reference_audio、reference_video；其余云端协议尚不传音视频参考。视频需要该服务 public_media_url 为已配置的公网HTTPS片场地址，平台创建6小时有效的单文件签名链接，不直接传内网URL，也不自动开放网络。音频和图像使用data URL；未勾选不发送。尾帧和自定义宽高仍未支持。
 
 云端任务记录 cloud_task_id 和 cloud_provider，服务重启后按原ID查询，不重新提交。提交阶段中断而无ID时结果不明，先人工核对供应商记录。停止使用平台原接口；官方 H3 运行中不能立即取消，cancelling 期间可能继续计费，不得宣称资源已释放。配置/模拟接口通过不等于真实账号出片或质量已验收。
+
+## 引导用户获取云端配置
+
+用户询问模型ID、服务地址、协议或密钥时，先确认其实际使用的是官方平台还是中转站，再提供对应入口；不能把不同供应商的密钥、地址混用。界面字段旁会随协议显示帮助链接。
+
+| 协议 | 官方服务地址 | 密钥获取 | 模型ID与接口说明 |
+|---|---|---|---|
+| ark | `https://ark.cn-beijing.volces.com/api/v3` | [方舟 API Key](https://ark.volcengine.com/region:cn-beijing/apikey) | [方舟模型控制台](https://console.volcengine.com/ark/region:cn-beijing/overview)、[视频接口文档](https://docs.volcengine.com/docs/ark/create-video-generation-task-api?lang=zh)；复制实际开放模型调用示例的 model 字段 |
+| minimax | `https://api.minimax.io` | [MiniMax 官方控制台](https://platform.minimax.io) → API Keys，使用视频按量付费密钥 | [H3 V2模型文档](https://platform.minimax.io/docs/api-reference/video-generation-v2-create)；官方完整高质量模型为 `MiniMax-H3` |
+| replicate | `https://api.replicate.com/v1` | [API Tokens](https://replicate.com/account/api-tokens) | [Seedance 模型页](https://replicate.com/bytedance/seedance-2.5)，复制实际模型 owner/name |
+| fal | `https://queue.fal.run` | [API Keys](https://fal.ai/dashboard/keys) | [Seedance 参考端点](https://fal.ai/models/bytedance/seedance-2.5/reference-to-video/api)，复制实际端点ID，并按对应生成方式配置 |
+
+中转站的地址、模型ID、密钥由中转站提供，协议必须与其文档匹配。预填模型ID只是示例，不代表用户已经开通；不要自动改写用户当前设置。引导用户在平台私有设置里填写密钥，不要求其在对话或截图里公开密钥，也不把“已保存”说成“已验证出片”。
+
+`public_media_url` 是用户自己的 Shotdesk 公网HTTPS地址，与上表模型服务地址不同。仅火山参考视频的签名链接需要该地址；没有公网地址可留空，图片和音频参考仍可使用。不得把火山的 `/api/v3` 地址填在素材公网地址中。

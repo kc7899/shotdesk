@@ -344,3 +344,5 @@ button.delete-project{color:#b97878;background:transparent;border-color:transpar
 .cloud-provider-card{border:1px solid #e4e5ee;border-radius:12px;padding:14px;margin:12px 0}.cloud-provider-options{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:10px}.cloud-provider-options label{display:flex;gap:5px;align-items:center}.cloud-provider-options input{width:auto}.cloud-provider-card input,.cloud-provider-card select{max-width:100%;min-width:0}
 
 .connection-test-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-top:10px}.connection-test-status{overflow-wrap:anywhere;flex:1 1 180px}.connection-test-status:empty{display:none}.connection-test-status[data-state="success"]{color:#397d5a}.connection-test-status[data-state="error"]{color:#b94c54}@media(max-width:540px){.connection-test-status{flex-basis:100%}}
+
+.cloud-field-help{display:block;line-height:1.6;margin-top:5px;font-weight:400;overflow-wrap:anywhere}.cloud-field-help a{color:var(--primary,#6b5bea);text-decoration:underline;text-underline-offset:2px}.cloud-field-help code{font-size:inherit;white-space:normal;word-break:break-word}

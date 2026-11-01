@@ -5,6 +5,16 @@ const storageKey='shotdesk.uiLanguage';
 let locale='zh';try{locale=localStorage.getItem(storageKey)==='en'?'en':'zh'}catch{}
 const translations={};
 const entries=`
+按服务商接口文档选择；中转站使用其自己的地址、模型 ID 和密钥。|Choose the protocol in the provider's API documentation. Gateways use their own URL, model ID and key.
+官方默认：|Official default:
+接口文档 ↗|API documentation ↗
+查找模型 ID ↗|Find model IDs ↗
+从模型详情或调用示例的 model 字段复制，以账号实际开通的版本为准。|Copy the model field from the model page or API example; use a version enabled for your account.
+获取 API 密钥 ↗|Get an API key ↗
+登录官方控制台 → API Keys，使用视频按量付费密钥。|Sign in to the official console → API Keys. Use a pay-as-you-go video API key.
+登录服务商控制台创建密钥，仅粘贴在此处。|Create a key in the provider console and paste it only here.
+填写你自己的 Shotdesk 公网 HTTPS 地址，不是模型服务地址。仅参考视频需要；没有可留空，图片与音频仍可使用。|Enter your own public HTTPS Shotdesk URL, not the model API URL. Only video references require it; leave it blank for image/audio references.
+
 素材公网地址（视频参考）|Public media URL (video references)
 引用所选音频|Use selected audio reference
 引用参考视频|Use video reference
