@@ -7,7 +7,7 @@ def validate_profiles(rows,old,url_validator):
     if not isinstance(rows,list) or len(rows)>20:raise ValueError('云端视频服务须为列表，最多20项')
     previous={x['id']:x for x in old};result=[];seen=set()
     for row in rows:
-        if not isinstance(row,dict) or set(row)-{'id','name','protocol','url','model','api_key','clear_key','enabled','max_references','modes','resolution','key_configured','public_media_url'}:raise ValueError('云端视频服务字段不正确')
+        if not isinstance(row,dict) or set(row)-{'id','name','protocol','url','model','api_key','clear_key','enabled','max_references','modes','resolution','key_configured','public_media_url','asset_access_key','asset_secret_key','asset_project','clear_asset_credentials','asset_credentials_configured'}:raise ValueError('云端视频服务字段不正确')
         ident=row.get('id','');protocol=row.get('protocol')
         if not isinstance(ident,str) or not re.fullmatch(r'[a-zA-Z0-9_-]{1,60}',ident) or ident in seen:raise ValueError('云端服务ID无效或重复')
         seen.add(ident)
@@ -18,6 +18,15 @@ def validate_profiles(rows,old,url_validator):
         public=url_validator(row.get('public_media_url',''))
         if public and not public.startswith('https://'):raise ValueError('素材访问地址须为公网HTTPS地址')
         item['public_media_url']=public
+        item.pop('asset_credentials_configured',None)
+        for key in ('asset_access_key','asset_secret_key'):
+            secret=row.get(key) or previous.get(ident,{}).get(key,'')
+            if not isinstance(secret,str) or len(secret)>8192 or '\n' in secret or '\r' in secret:raise ValueError('素材库AK/SK无效')
+            item[key]='' if row.get('clear_asset_credentials') else secret
+        item.pop('clear_asset_credentials',None)
+        project=row.get('asset_project') or 'default'
+        if not isinstance(project,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,100}',project):raise ValueError('素材库项目名称无效')
+        item['asset_project']=project
         item['model']=model
         refs=row.get('max_references',9)
         if isinstance(refs,bool) or not isinstance(refs,int) or not 0<=refs<=30:raise ValueError('参考图片数量须为0–30')
@@ -36,16 +45,16 @@ def validate_profiles(rows,old,url_validator):
         item['resolution']=resolution;result.append(item)
     return result
 
-def public_profiles(rows):return [{**{k:v for k,v in x.items() if k!='api_key'},'key_configured':bool(x.get('api_key'))} for x in rows]
+def public_profiles(rows):return [{**{k:v for k,v in x.items() if k not in ('api_key','asset_access_key','asset_secret_key')},'asset_credentials_configured':bool(x.get('asset_access_key') and x.get('asset_secret_key')),'key_configured':bool(x.get('api_key'))} for x in rows]
 def profile(settings,model):return next((x for x in settings.read().get('video_providers',[]) if 'cloud-'+x['id']==model and x.get('enabled',True)),None)
 def catalog(settings):
     return [{'id':'cloud-'+x['id'],'display_name':x['name'],'provider':x['protocol'],'modes':x['modes'],'max_references':x['max_references'],'supports_resolution':True,'canonical_model':'cloud-'+x['id'],'legacy_resolution':None,'operation':'generate','verification':'configured-unverified','available':bool(x.get('api_key')),'requires_image':False,'supports_media_reference':x['protocol']=='ark','public_media_configured':bool(x.get('public_media_url'))} for x in settings.read().get('video_providers',[]) if x.get('enabled',True)]
 def provider_error(response,key):
     code='';message='';request_id=''
     try:
-        data=json.loads(response.read(32768));error=data.get('error',{})
+        data=json.loads(response.read(32768));error=data.get('error') or data.get('ResponseMetadata',{}).get('Error',{})
         if isinstance(error,dict):
-            code=str(error.get('code',''));message=str(error.get('message',''));request_id=str(error.get('request_id') or data.get('request_id') or '')
+            code=str(error.get('code') or error.get('Code',''));message=str(error.get('message') or error.get('Message',''));request_id=str(error.get('request_id') or data.get('request_id') or data.get('ResponseMetadata',{}).get('RequestId') or '')
     except (ValueError,TypeError,AttributeError):pass
     if not re.fullmatch(r'[A-Za-z0-9_.-]{1,120}',code):code=''
     if key:message=message.replace(key,'[密钥已隐藏]')
@@ -161,10 +170,8 @@ def media_signature(app,pid,jid,index,expires,digest):
     key=app.SETTINGS.session_secret();key=key.encode() if isinstance(key,str) else key
     return hmac.new(key,message.encode(),hashlib.sha256).hexdigest()
 
-def prepare_media(queue,pid,j,p):
-    body=copy.deepcopy(j['request']);sources=body.pop('cloud_video_sources',[])
-    if not sources:return body
-    if not p.get('public_media_url'):raise ValueError('参考视频需要一次性设置素材公网HTTPS地址；不能把本地路径发给火山')
+def grant_media(queue,pid,j,p,sources):
+    if not p.get('public_media_url'):raise ValueError('素材传递需要一次性设置素材公网HTTPS地址；不能把本地路径发给火山')
     expires=int(time.time())+21600;grants=[];urls=[]
     for index,url in enumerate(sources):
         if not url.startswith('/media/'+pid+'/media/'):raise ValueError('参考视频须属于当前项目')
@@ -173,7 +180,11 @@ def prepare_media(queue,pid,j,p):
         grants.append({'url':url,'expires':expires,'sha256':digest})
         urls.append(p['public_media_url']+f'/cloud-media/{pid}/{j["id"]}/{index}?expires={expires}&signature={sig}')
     j['cloud_media_grants']=grants;queue.persist(pid,j)
-    body.setdefault('metadata',{})['reference_videos']=urls
+    return urls
+
+def prepare_media(queue,pid,j,p):
+    body=copy.deepcopy(j['request']);sources=body.pop('cloud_video_sources',[])
+    if sources:body.setdefault('metadata',{})['reference_videos']=grant_media(queue,pid,j,p,sources)
     return body
 
 def granted_media(app,path,query):

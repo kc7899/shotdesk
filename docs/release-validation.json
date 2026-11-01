@@ -120,5 +120,29 @@
     "video_transport": "six-hour signed URL; requires user-configured public HTTPS studio URL",
     "public_endpoint_configured_on_live_host": false,
     "live_paid_generation_verified": false
+  },
+  "ark_aigc_asset_sync_trial": {
+    "date": "2026-11-02",
+    "development_tests_run": 490,
+    "asset_sync_tests_passed": 8,
+    "frontend_suites_passed": 12,
+    "official_sdk_signature_match": true,
+    "validated": [
+      "CreateAssetGroup/CreateAsset/GetAsset via local HTTP service",
+      "signed image fetch",
+      "approved asset:// selected look binding",
+      "review failure",
+      "unknown submission no retry",
+      "identity and look share group",
+      "credentials redaction",
+      "stale image rejection"
+    ],
+    "live_account_upload_attempted": false,
+    "live_account_review_verified": false,
+    "blocked_by": [
+      "No asset AK/SK configured",
+      "No public HTTPS studio URL configured",
+      "Initial official agreement/entitlement not verified"
+    ]
   }
 }

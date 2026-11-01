@@ -5,6 +5,31 @@ const storageKey='shotdesk.uiLanguage';
 let locale='zh';try{locale=localStorage.getItem(storageKey)==='en'?'en':'zh'}catch{}
 const translations={};
 const entries=`
+填写你自己的 Shotdesk 公网 HTTPS 地址，不是模型服务地址。参考视频或角色入库需要；普通图片、音频直接生成可留空。|Enter your own public HTTPS Shotdesk URL, not the model API URL. Required for video references or character library sync; optional for direct image/audio generation.
+
+虚拟角色素材库 · AK/SK 配置|Virtual character library · AK/SK settings
+获取 AK/SK ↗|Get AK/SK ↗
+首次授权与权益说明 ↗|Initial agreement and entitlement guide ↗
+仅火山官方虚拟角色入库需要；视频 API 密钥不能替代 AK/SK。|Only required for the official Ark virtual character library; the video API key cannot replace AK/SK.
+留空保留已配置凭据|Leave blank to retain saved credentials
+火山项目名称|Ark project name
+清除素材库凭据|Clear asset library credentials
+首次请在方舟控制台签署虚拟素材授权、开通对应权益，并填写上方素材公网地址；之后上传与审核状态可在角色卡操作。|First sign the virtual asset agreement and enable the required entitlement in Ark, then configure the public media URL above. Afterwards upload and check review status from character cards.
+请输入凭据|Enter credentials
+需更新|Needs update
+可使用|Ready
+审核中|Under review
+未通过|Rejected
+提交失败|Submission failed
+结果待核对|Needs reconciliation
+上传中|Uploading
+未同步|Not synced
+同步中…|Syncing…
+刷新审核|Refresh review
+同步到 Seedance|Sync to Seedance
+素材同步已加入任务队列|Asset sync added to the task queue
+素材同步|Asset sync
+
 按服务商接口文档选择；中转站使用其自己的地址、模型 ID 和密钥。|Choose the protocol in the provider's API documentation. Gateways use their own URL, model ID and key.
 官方默认：|Official default:
 接口文档 ↗|API documentation ↗

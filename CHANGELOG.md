@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Experimental official Ark virtual-character asset sync: private AK/SK setup, per-character groups, per-look review status, stale-image protection and automatic approved asset references. Live account review remains unverified.
+
 - Added cloud video providers: Seedance via Volcano Ark, Replicate and fal, plus official full-quality MiniMax H3 V2 and compatible gateways. Shared asset binding, task persistence, cancellation confirmation and local media history. Provider credentials stay private. Real cloud inference is not yet verified.
 
 ## 2026-11-01 · 动态选择默认LLM

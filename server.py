@@ -9,6 +9,7 @@ from review_contract import ReviewContract
 from trash_manager import TrashManager
 import storyboard
 import cloud_video
+import ark_assets
 from concurrent.futures import ThreadPoolExecutor
 ROOT=Path(__file__).resolve().parent
 DATA=Path(os.getenv('SHOTDESK_DATA_DIR',str(ROOT/'data'))); DATA.mkdir(parents=True,exist_ok=True)
@@ -573,6 +574,7 @@ def launch(pid, target, target_id, kind, batch_id=None):
         if kind=='image' and target=='asset' and obj.get('type')=='场景':body['aspect_ratio']='16:9'
         if kind=='image' and target=='asset' and obj.get('type')=='道具':body['aspect_ratio']='1:1'
         source=None;source_images=[];source_audio=None;source_video=None;mode=None;audio_input=None;image_inputs=[];resolution_input=None
+        cloud=cloud_video.profile(SETTINGS,body['model']) if kind=='video' else None
         if kind=='image':
             if obj.get('type')=='音频':raise ValueError('音频资产不能生成图片')
             image_inputs=image_resources(p,obj)
@@ -612,7 +614,7 @@ def launch(pid, target, target_id, kind, batch_id=None):
                 image_inputs=image_resources(p,obj)
                 if any(not x['url'] for x in image_inputs):raise ValueError('关联人物或造型缺少参考图片')
                 source_images=[x['url'] for x in image_inputs]
-                body.update(image=list(map(reference,source_images)),metadata={'gen_mode':'imageReference'})
+                body.update(image=[ark_assets.image_input(AppContext(),pid,cloud,item) for item in image_inputs] if cloud and cloud['protocol']=='ark' else list(map(reference,source_images)),metadata={'gen_mode':'imageReference'})
             elif mode in ('first_frame','audio','music'):
                 if mode=='first_frame' and body['model'] not in FIRST_FRAME_VIDEO_MODELS and not any(x['id']==body['model'] and 'first_frame' in x['modes'] for x in model_catalog()['videos']):raise ValueError('当前模型不支持首帧模式，请选择I2V模型或切换参考资产模式')
                 source=obj.get('image')
@@ -631,7 +633,6 @@ def launch(pid, target, target_id, kind, batch_id=None):
                 source_video=obj.get('reference_video') or (obj.get('video') if mode in ('upscale','interpolate') else None)
                 if not source_video:raise ValueError('请先上传参考视频，或为视频处理选择已有镜头视频')
                 body.setdefault('metadata',{}).update(gen_mode='allReference',reference_videos=[reference(source_video)])
-        cloud=cloud_video.profile(SETTINGS,body['model']) if kind=='video' else None
         if cloud:
             if any(key in obj and not isinstance(obj[key],bool) for key in ('cloud_use_audio','cloud_use_video')):raise ValueError('音视频引用开关须为布尔值')
             if cloud['protocol']=='ark' and mode=='reference' and obj.get('cloud_use_audio'):
@@ -1431,6 +1432,8 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/i18n.js':return self.serve_media(ROOT/'static/i18n.js')
             if path=='/api/session':return self.reply({'authenticated':SETTINGS.authenticated(self.headers),'password_required':SETTINGS.has_password()})
             if not self.access_gate():return
+            asset_state=re.fullmatch('/api/projects/([a-f0-9]{32})/ark-assets',path)
+            if asset_state:return self.reply(ark_assets.view(AppContext(),asset_state[1]))
             if path=='/api/settings':return self.reply(service_settings())
             if path=='/api/workflows':return self.reply({'adapter':service_settings()['workflow_adapter'],**model_catalog()})
             if path=='/api/asset-prompt-presets':return self.reply(ASSET_PROMPT_PRESETS)
@@ -1518,7 +1521,7 @@ class Handler(BaseHTTPRequestHandler):
             if cancel:return self.reply(Q.cancel(*cancel.groups()))
             resume=re.fullmatch('/api/projects/([a-f0-9]{32})/jobs/([a-f0-9]{32})/resume',path)
             if resume:return self.reply(resume_speech(*resume.groups()))
-            match=re.fullmatch('/api/projects/([a-f0-9]{32})/(save|delete|generate|generate-batch|reviews|plan|storyboard|storyboard-check|extract-assets|apply-extracted-assets|clear-assets|clear-shots|upload|compose|read-media|consume-media|shot-completion|inspect-media|upload-media|optimize-look|optimize-prop|preview-prompt)',path)
+            match=re.fullmatch('/api/projects/([a-f0-9]{32})/(save|delete|sync-ark-asset|generate|generate-batch|reviews|plan|storyboard|storyboard-check|extract-assets|apply-extracted-assets|clear-assets|clear-shots|upload|compose|read-media|consume-media|shot-completion|inspect-media|upload-media|optimize-look|optimize-prop|preview-prompt)',path)
             if not match: return self.reply({'error':'接口不存在'},404)
             pid,action=match.groups()
             if action=='preview-prompt':return self.reply(preview_shot_prompt(pid,body))
@@ -1530,6 +1533,7 @@ class Handler(BaseHTTPRequestHandler):
             if action=='save':
                 allowed={'name','content','script','ratio','image_model','video_model','video_mode','video_resolution','llm_model','prompt_language','assets','shots'}
                 update(pid,lambda p:merge_save(p,body)); return self.reply(load(pid))
+            if action=='sync-ark-asset':return self.reply(ark_assets.launch(AppContext(),pid,body))
             if action=='generate-batch':return self.reply(launch_batch(pid,body.get('kind'),body.get('mode','all'),body.get('required_only',False)))
             if action=='reviews':return self.reply(REVIEWS.record(pid,body))
             if action=='generate': return self.reply(launch(pid,body.get('target','shot'),body['id'],body['kind']))

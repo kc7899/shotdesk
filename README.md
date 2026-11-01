@@ -81,6 +81,16 @@ docker compose up -d --build
 
 Cloud video providers are configured under **Service connections → Cloud video**. Supported protocols: Volcano Ark / compatible gateways, official MiniMax H3 V2, Replicate Seedance, and fal Seedance. Configure your own key and actual model ID, then select the service in project model settings. The integration supports text, first-frame and image-reference generation. Ark additionally supports explicitly enabled audio/video references alongside images. Audio uses data URLs; video uses single-file signed links valid for six hours and requires a one-time public HTTPS studio URL. No automatic public exposure or network tunnelling is performed. Credentials stay private; jobs share the queue and downloaded version history. Saving does not submit a paid job. Running official H3 jobs cannot be cancelled immediately. Protocol tests use local fake services; live paid generation still requires separate verification.
 
+## Seedance 虚拟角色素材库（试验）
+
+角色身份图和每个造型卡可点击“同步到 Seedance”，在工作台查看上传、审核中、可使用或拒绝原因。审核通过后，火山资产参考生成自动使用对应的 `asset://` ID；本地和 H3 仍使用图片。切换图片会提示需更新，不沿用旧图的审核结果。刷新审核只查询现有ID，不重复上传。
+
+首次需在[方舟私域虚拟人像库](https://docs.volcengine.com/docs/ark/private-virtual-avatar-library-guide-preview?lang=zh)签署虚拟素材授权并开通所需权益；在“服务连接 → 火山方舟 → 虚拟角色素材库”配置 [AK/SK](https://console.volcengine.com/iam/keymanage)、项目名称与素材公网HTTPS地址。AK/SK 与视频 API Key 不同，素材和视频调用必须属于相同火山项目。官方素材库只接受可访问URL，本功能复用6小时单文件签名链接，不自动开放网络。普通视频服务不需要这些额外设置。
+
+当前仅接入官方 AIGC 虚拟人像素材库，不做真人认证，不向中转站发送AK/SK。每个角色共用一个素材组，身份与造型各自审核。审核拒绝不自动反复上传，网络中断导致提交结果不明时保留记录并要求核对；停止同步仅停止本地等待，不删除已上传素材。审核超过10分钟时保存Processing状态，可稍后刷新。
+
+同步映射独立保存在项目目录的 `ark-assets.json`，避免编辑保存覆盖审核结果；备份数据卷时保留此文件。项目JSON导出不包含这份映射。当前完成了本地模拟接口测试与官方SDK签名对照，尚未使用真实账号提交入库，真实审核能否通过取决于火山。
+
 ## 数据、备份与访问
 
 Docker 默认使用两个独立命名卷：`shotdesk-data` 保存项目/媒体/设置，`shotdesk-workflows` 保存导入配置；实际名称由Compose项目名前缀决定，可用 `docker volume ls` 查看。重新构建镜像不会清空卷。不要使用 `docker compose down -v`，除非确实要删除所有数据。

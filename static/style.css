@@ -346,3 +346,5 @@ button.delete-project{color:#b97878;background:transparent;border-color:transpar
 .connection-test-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-top:10px}.connection-test-status{overflow-wrap:anywhere;flex:1 1 180px}.connection-test-status:empty{display:none}.connection-test-status[data-state="success"]{color:#397d5a}.connection-test-status[data-state="error"]{color:#b94c54}@media(max-width:540px){.connection-test-status{flex-basis:100%}}
 
 .cloud-field-help{display:block;line-height:1.6;margin-top:5px;font-weight:400;overflow-wrap:anywhere}.cloud-field-help a{color:var(--primary,#6b5bea);text-decoration:underline;text-underline-offset:2px}.cloud-field-help code{font-size:inherit;white-space:normal;word-break:break-word}
+
+.ark-asset-status{display:flex;align-items:center;flex-wrap:wrap;gap:6px 9px;padding:8px 0;font-size:12px}.ark-asset-status button{padding:4px 8px}.ark-asset-status small{overflow-wrap:anywhere}.ark-asset-error{flex-basis:100%;color:#b94c54}.ark-asset-status select{max-width:220px}

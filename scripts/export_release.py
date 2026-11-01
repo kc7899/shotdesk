@@ -2,7 +2,7 @@
 import argparse,hashlib,json,re,shutil
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-FILES=['cloud_video.py','server.py','runtime_config.py','workflow_transport.py','task_queue.py','storyboard.py','h3_structured.py','source_storyboard.py','coverage_director.py','review_contract.py','trash_manager.py','README.md','AGENTS.md','CHANGELOG.md','DEVELOPMENT.md','THIRD_PARTY_NOTICES.md','Dockerfile','compose.yaml','.env.example','.gitignore','.dockerignore','SECURITY.md','CONTRIBUTING.md']
+FILES=['ark_assets.py','cloud_video.py','server.py','runtime_config.py','workflow_transport.py','task_queue.py','storyboard.py','h3_structured.py','source_storyboard.py','coverage_director.py','review_contract.py','trash_manager.py','README.md','AGENTS.md','CHANGELOG.md','DEVELOPMENT.md','THIRD_PARTY_NOTICES.md','Dockerfile','compose.yaml','.env.example','.gitignore','.dockerignore','SECURITY.md','CONTRIBUTING.md']
 def export(output):
     output=Path(output).resolve()
     if output==ROOT or output.is_relative_to(ROOT) or ROOT.is_relative_to(output):raise ValueError('输出目录必须位于项目之外，不能覆盖当前项目或上级目录')

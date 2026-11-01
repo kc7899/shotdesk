@@ -41,11 +41,13 @@ class TaskQueue:
                 print('Media worker failed:',j['id'],str(exc),flush=True)
     def worker(self,pid,j):
         try:
-            lock=self.media_lock if j['kind'] in ('image','video','audio') else self.text_lock if j['kind']=='text' else self.export_lock
+            lock=threading.Lock() if j['kind']=='asset_sync' else self.media_lock if j['kind'] in ('image','video','audio') else self.text_lock if j['kind']=='text' else self.export_lock
             while not lock.acquire(timeout=.2): self.check(j)
             try:
                 self.check(j)
                 if j['kind'] in ('image','video'): self.run_media(pid,j)
+                elif j['kind']=='asset_sync':
+                    self.start(pid,j);result=self.app.ark_assets.run(self,pid,j);self.done(pid,j,result=result)
                 elif j['kind']=='audio':self.app.run_speech(pid,j)
                 elif j['kind']=='text':
                     self.start(pid,j)
@@ -426,6 +428,7 @@ class TaskQueue:
             elif j.get('cancel_requested'):
                 # Confirm upstream cancellation again after a process restart.
                 threading.Thread(target=self.cancel,args=(pid,j['id']),daemon=True).start()
+            elif j.get('kind')=='asset_sync':self.enqueue(pid,j)
             elif j.get('phase') in ('submitting','speech_submitting','cloud_submitting') and not j.get('prompt_id') and not j.get('speech_remote_id') and not j.get('cloud_task_id'):
                 j.update(status='failed',finished_at=time.time(),error='提交时服务重启，上游结果不明确；保留记录，请核对后重试');self.persist(pid,j)
             elif j.get('cloud_task_id') or j.get('prompt_id') or j.get('remote_id') or j.get('speech_remote_id') or j['status']=='queued':self.enqueue(pid,j)

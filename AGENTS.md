@@ -64,4 +64,12 @@
 
 中转站的地址、模型ID、密钥由中转站提供，协议必须与其文档匹配。预填模型ID只是示例，不代表用户已经开通；不要自动改写用户当前设置。引导用户在平台私有设置里填写密钥，不要求其在对话或截图里公开密钥，也不把“已保存”说成“已验证出片”。
 
-`public_media_url` 是用户自己的 Shotdesk 公网HTTPS地址，与上表模型服务地址不同。仅火山参考视频的签名链接需要该地址；没有公网地址可留空，图片和音频参考仍可使用。不得把火山的 `/api/v3` 地址填在素材公网地址中。
+`public_media_url` 是用户自己的 Shotdesk 公网HTTPS地址，与上表模型服务地址不同。火山参考视频或虚拟素材入库的签名链接需要该地址；没有公网地址可留空，图片和音频参考仍可使用。不得把火山的 `/api/v3` 地址填在素材公网地址中。
+
+## Seedance虚拟角色同步（试验）
+
+首次引导用户在方舟签署AIGC虚拟素材授权，开通所需权益，并在私有 `video_providers` 的对应ark服务填写 `asset_access_key`、`asset_secret_key`、`asset_project`（默认default）和 `public_media_url`。AK/SK不等于视频api_key；只能从私有设置读取，不要索要用户在聊天公开。GET只返回asset_credentials_configured。留空保留原凭据，clear_asset_credentials:true清除。当前只支持官方地址，不对中转站发送AK/SK。
+
+读取 `GET /api/projects/<pid>/ark-assets` 获取独立同步记录。提交 `POST /api/projects/<pid>/sync-ark-asset {model:"cloud-服务id",resource_id:"角色id或造型id"}`，进入统一asset_sync队列。后台自动CreateAssetGroup（同角色共用）、CreateAsset和GetAsset；相同图片已有asset_id时仅查询，不重复上传。Active才可用，Processing仍在审核，Failed展示原因；Unknown表示上次提交结果不明，必须先核对方舟记录，不重复创建。任务completed仍需检查result.status，Processing不能当作审核通过。
+
+同步记录独立保存项目ark-assets.json，不能在/save里伪造审核状态。造型与身份分别绑定当前图片和SHA256；视频提交自动选当前造型的Active素材ID，图片切换或内容变化后拒绝沿用旧ID。没有同步记录的参考图保留原图传递行为，不宣称已获认可。云端项目必须匹配；不影响本地/H3图片路径。只有模拟接口和签名验证通过，不能宣称真实账号审核已通过。

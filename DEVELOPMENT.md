@@ -38,3 +38,7 @@ The script output parser preserves literal invalid JSON escapes and makes at mos
 ## 测试目录
 
 `tests/backend/` 存放当前后端测试，`tests/frontend/` 存放界面测试，`tests/legacy/` 保留历史方案兼容测试，`tests/support.py` 提供共享测试数据。请从项目根目录运行上述命令；使用平台不需要手动运行测试。
+
+## Optional Ark AIGC asset sync
+
+`ark_assets.py` implements the official CreateAssetGroup/CreateAsset/GetAsset flow without extra runtime dependencies. Its HMAC-SHA256 output is checked against an independently generated official Python SDK SignerV4 test vector. Upstream reference: https://github.com/volcengine/volc-sdk-python/blob/main/volcengine/auth/SignerV4.py (not redistributed). Local HTTP tests cover signed media fetches, review rejection, credentials, stale images, group reuse and no duplicate upload. These tests are not evidence of live account entitlement or review acceptance. Keep credentials in private settings and mappings in the project sidecar; never mix them into editable assets.
