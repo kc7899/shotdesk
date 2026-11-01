@@ -2,9 +2,23 @@
 
 **0.1.0-preview.1 · 本地服务预览版**
 
-一个由人工与 Agent 共用的轻量短剧工作台。连接自己的 OpenAI 兼容 LLM 与 ComfyUI，按镜头制作图片、视频并管理版本；首帧不是必经环节。
+## 让 AI Agent 主导短剧制作，力求一键成片
 
-故事 → 剧本 → 参考资产 → 分镜 → 首帧或资产参考生视频 → 选片 → 合片。
+Shotdesk 是面向 **AI Agent** 的短剧制作工作台。Agent 读取项目说明后，即可了解操作方式，按标准流程推进制作：
+
+**内容 → 剧本 → 资产 → 分镜 → 首帧（按需）→ 视频 → 合片**
+
+我们的目标是让 Agent 自主完成整个流程，尽量无需人工介入，直接交付成片。
+
+工作台将 Agent 的制作进度、分镜和生成结果直观呈现。人工主要负责审查，也可以随时介入，对单个镜头进行调整、优化或重新生成，再交由 Agent 继续完成制作。
+
+当前预览版已提供 Agent 操作说明与制作接口；自动完成的程度取决于所用 Agent、模型和工作流。“无人介入、一键成片”是项目持续推进的目标。
+
+**AI Agent–driven short drama production, aiming for one-click filmmaking.**
+
+Shotdesk is a production workspace built for AI agents. By reading the project instructions, an agent can learn how to operate it and follow the production workflow: content → script → assets → storyboard → optional first frames → video → final assembly.
+
+Our goal is autonomous production from start to finish, with as little human intervention as possible. The workspace makes the agent’s progress, storyboards and generated results visible. People primarily review the work and can adjust or regenerate individual shots at any time before handing production back to the agent. Full unattended, one-click filmmaking is the goal; current automation depends on the agent, models and workflows in use.
 
 界面支持中文 / English，顶部可切换并记住选择；界面语言与项目提示词语言独立，不会翻译已有内容。
 
