@@ -40,6 +40,28 @@ def public_profiles(rows):return [{**{k:v for k,v in x.items() if k!='api_key'},
 def profile(settings,model):return next((x for x in settings.read().get('video_providers',[]) if 'cloud-'+x['id']==model and x.get('enabled',True)),None)
 def catalog(settings):
     return [{'id':'cloud-'+x['id'],'display_name':x['name'],'provider':x['protocol'],'modes':x['modes'],'max_references':x['max_references'],'supports_resolution':True,'canonical_model':'cloud-'+x['id'],'legacy_resolution':None,'operation':'generate','verification':'configured-unverified','available':bool(x.get('api_key')),'requires_image':False,'supports_media_reference':x['protocol']=='ark','public_media_configured':bool(x.get('public_media_url'))} for x in settings.read().get('video_providers',[]) if x.get('enabled',True)]
+def provider_error(response,key):
+    code='';message='';request_id=''
+    try:
+        data=json.loads(response.read(32768));error=data.get('error',{})
+        if isinstance(error,dict):
+            code=str(error.get('code',''));message=str(error.get('message',''));request_id=str(error.get('request_id') or data.get('request_id') or '')
+    except (ValueError,TypeError,AttributeError):pass
+    if not re.fullmatch(r'[A-Za-z0-9_.-]{1,120}',code):code=''
+    if key:message=message.replace(key,'[密钥已隐藏]')
+    message=re.sub(r'data:[^\s\"\']+','[素材数据已隐藏]',message)
+    message=re.sub(r'https?://[^\s\"\']+','[地址已隐藏]',message)
+    message=re.sub(r'(?i)(?:Bearer|Token|Key)\s+[A-Za-z0-9_./:+-]+','[认证信息已隐藏]',message)
+    message=re.sub(r'[A-Za-z0-9+/=_-]{100,}','[长数据已隐藏]',message)
+    message=' '.join(message.split())[:600]
+    if not re.fullmatch(r'[A-Za-z0-9_.:-]{1,120}',request_id):request_id=''
+    result='云端视频接口拒绝请求（HTTP '+str(response.code)+'）'
+    if code:result+=' ['+code+']'
+    if message:result+='：'+message
+    else:result+='；服务商未返回可安全显示的错误详情，请检查模型权限与参数'
+    if request_id:result+='（Request ID: '+request_id+'）'
+    return result
+
 def request(p,path,body=None,method=None):
     key=p.get('api_key')
     if not key:raise ValueError('请先在服务连接中设置云端视频API密钥')
@@ -49,8 +71,8 @@ def request(p,path,body=None,method=None):
         with OP.open(req,timeout=60) as r:
             raw=r.read();data=json.loads(raw) if raw else {}
     except urllib.error.HTTPError as e:
-        # Don't retain provider bodies: they may echo credentials or input data URLs.
-        raise ValueError('云端视频接口拒绝请求（HTTP '+str(e.code)+'）；请检查余额、模型权限和参数') from None
+        # Preserve actionable provider errors without credentials or raw media.
+        raise ValueError(provider_error(e,key)) from None
     except (OSError,ValueError):raise ValueError('云端视频接口连接失败或响应无效；不会自动重复提交') from None
     if data.get('base_resp',{}).get('status_code',0):raise ValueError('MiniMax接口返回错误码 '+str(data['base_resp']['status_code']))
     return data

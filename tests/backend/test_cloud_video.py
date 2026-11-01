@@ -92,6 +92,10 @@ class CloudVideo(unittest.TestCase):
    first=app.launch(pid,'shot','s','video');self.assertNotIn('cloud_video_sources',first['request']);self.assertNotIn('reference_audios',first['request'].get('metadata',{}))
    app.update(pid,lambda project:project['shots'][0].update(cloud_use_audio=True,cloud_use_video=True))
    second=app.launch(pid,'shot','s','video');self.assertEqual(second['request']['cloud_video_sources'],[video]);self.assertTrue(second['request']['metadata']['reference_audios'][0].startswith('data:audio/wav;'));self.assertEqual(second['source_audio'],audio);self.assertEqual(second['source_video'],video)
+ def test_http_error_keeps_cause_without_secret_or_media(self):
+  import io
+  error=urllib.error.HTTPError('https://example.org',400,'Bad Request',{},io.BytesIO(json.dumps({'error':{'code':'InvalidParameter','message':'resolution not supported; secret-key data:image/png;base64,abcdef https://example.org/private?signature=secret','request_id':'req-123'}}).encode()))
+  message=c.provider_error(error,'secret-key');self.assertIn('InvalidParameter',message);self.assertIn('resolution not supported',message);self.assertIn('req-123',message);self.assertNotIn('secret-key',message);self.assertNotIn('base64,abcdef',message);self.assertNotIn('signature=secret',message)
  def test_restart_reuses_remote_task_without_resubmitting(self):
   self.cloud();provider=self.provider();self.settings.update({'video_providers':[provider]});p=self.req('/api/projects',{'name':'Resume'});pid=p['id'];j={'id':'a'*32,'kind':'video','request':{'model':'cloud-test-minimax'},'cloud_task_id':'known-task','cloud_provider':{k:provider[k] for k in ('id','protocol','url','model')},'transport':'cloud','status':'running'};self.q.events[j['id']]=threading.Event()
   with patch.object(c,'submit') as submit,patch.object(c,'poll',return_value=('completed',self.cloud_url+'/artifact.mp4')),patch.object(app,'finish_job'),patch.object(self.q,'done') as done:
