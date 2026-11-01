@@ -1,6 +1,7 @@
 """Persistent unified jobs with target-scoped cancellation; no global model interrupts."""
 import copy, http.client, importlib.util, json, os, socket, statistics, subprocess, threading, time, urllib.parse
 from pathlib import Path
+import cloud_video
 
 ACTIVE={'queued','running','cancelling'}
 TERMINAL={'completed','failed','cancelled'}
@@ -86,6 +87,7 @@ class TaskQueue:
                 for f in (self.app.project(pid).parent/'media').glob('*'+j['id']+'*'): f.unlink(missing_ok=True)
     def mark_cancelled(self,pid,j):
         try:
+            if j.get('transport')=='cloud':cloud_video.stop(self,j)
             if j.get('kind')=='audio' and not self.app.speech_terminal(j):raise ValueError('已停止接收结果，等待IndexTTS当前推理释放资源')
             if j.get('remote_id') and not j.get('prompt_id'):
                 state=self.app.request(self.app.GATEWAY+'/v1/video/generations/'+j['remote_id'],timeout=10)
@@ -105,6 +107,7 @@ class TaskQueue:
         return self.transport
     def run_media(self,pid,j):
         self.check(j)
+        if j.get('transport')=='cloud':return cloud_video.run(self,pid,j)
         if j.get('remote_id') and j.get('transport')!='comfy': return self.run_legacy(pid,j)
         if not j.get('prompt_id'):
             j.update(phase='preparing');self.persist(pid,j)
@@ -178,7 +181,7 @@ class TaskQueue:
                 j=json.loads(self.app.job_path(pid,jid).read_text())
                 if j['status'] not in ACTIVE:continue
                 self.events.setdefault(jid,threading.Event()).set();j['cancel_requested']=True
-                local_only=j['status']=='queued' and not any(j.get(k) for k in ('prompt_id','remote_id','speech_remote_id')) and jid not in self.connections and jid not in self.processes
+                local_only=j['status']=='queued' and not any(j.get(k) for k in ('prompt_id','remote_id','speech_remote_id','cloud_task_id','cloud_provider')) and jid not in self.connections and jid not in self.processes
                 if local_only:j.update(status='cancelled',phase='cancelled',finished_at=time.time());j.pop('cancel_error',None)
                 else:
                     j.update(status='cancelling',phase='cancelling')
@@ -205,6 +208,7 @@ class TaskQueue:
             if j['status'] not in ACTIVE:return self.public(pid,j)
             self.events.setdefault(jid,threading.Event()).set();j.update(status='cancelling',cancel_requested=True);self.persist(pid,j)
         try:
+            if j.get('transport')=='cloud':cloud_video.stop(self,j)
             if j.get('kind')=='audio' and not self.app.speech_terminal(j):raise ValueError('已停止接收结果，等待IndexTTS当前推理释放资源')
             prompt=j.get('prompt_id')
             if j.get('remote_id') and not prompt:
@@ -243,6 +247,7 @@ class TaskQueue:
                     try:
                         j=json.loads(self.app.job_path(pid,jid).read_text())
                         if j['status']!='cancelling':return
+                        if j.get('transport')=='cloud':cloud_video.stop(self,j)
                         if j.get('kind')=='audio' and not self.app.speech_terminal(j):continue
                         if not j.get('prompt_id') and j.get('remote_id'):
                             state=self.app.request(self.app.GATEWAY+'/v1/video/generations/'+j['remote_id'],timeout=10)
@@ -421,8 +426,8 @@ class TaskQueue:
             elif j.get('cancel_requested'):
                 # Confirm upstream cancellation again after a process restart.
                 threading.Thread(target=self.cancel,args=(pid,j['id']),daemon=True).start()
-            elif j.get('phase') in ('submitting','speech_submitting') and not j.get('prompt_id') and not j.get('speech_remote_id'):
+            elif j.get('phase') in ('submitting','speech_submitting','cloud_submitting') and not j.get('prompt_id') and not j.get('speech_remote_id') and not j.get('cloud_task_id'):
                 j.update(status='failed',finished_at=time.time(),error='提交时服务重启，上游结果不明确；保留记录，请核对后重试');self.persist(pid,j)
-            elif j.get('prompt_id') or j.get('remote_id') or j.get('speech_remote_id') or j['status']=='queued':self.enqueue(pid,j)
+            elif j.get('cloud_task_id') or j.get('prompt_id') or j.get('remote_id') or j.get('speech_remote_id') or j['status']=='queued':self.enqueue(pid,j)
             else:
                 j.update(status='failed',finished_at=time.time(),error='服务曾重启，执行结果不明确；请检查后重试');self.persist(pid,j)

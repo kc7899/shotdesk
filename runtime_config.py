@@ -2,7 +2,7 @@
 import hashlib,hmac,json,os,secrets,time,urllib.parse,urllib.request,threading
 from pathlib import Path
 class RuntimeConfig:
-    fields={'llm_url','llm_model','llm_api_key','comfy_url','speech_url','vision_model'}
+    fields={'llm_url','llm_model','llm_api_key','comfy_url','speech_url','vision_model','video_providers'}
     def __init__(self,data):self.data=Path(data);self.path=self.data/'settings.json';self.lock=threading.RLock();self.attempts={}
     def read(self):
         with self.lock:
@@ -25,6 +25,9 @@ class RuntimeConfig:
         for key in self.fields:
             if key not in body:continue
             item=body[key]
+            if key=='video_providers':
+                import cloud_video
+                value[key]=cloud_video.validate_profiles(item,value.get(key,[]),self.url);continue
             if not isinstance(item,str) or len(item)>8192:raise ValueError('服务设置须为文字')
             item=item.strip()
             if key.endswith('_url'):item=self.url(item)

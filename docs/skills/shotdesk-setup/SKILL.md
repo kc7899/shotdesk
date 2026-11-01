@@ -16,3 +16,7 @@ Read `README.md` and `docs/local-setup.md` from the checkout first. If given onl
 7. Report connected, dependencies checked and generation verified separately, with actual project/job IDs. If a service fails, preserve existing project data, identify the layer (address/auth/dependency/inference/media export), apply one supported correction and retest. Stop after two unsuccessful repair attempts and report evidence; do not loop, globally interrupt ComfyUI, restart shared services or repeatedly submit billable tasks.
 
 Existing user authorization remains applicable. Obtain missing credentials or authorization only for actions that require them, such as paid calls, large downloads or restarting a shared service. Deliver a working configuration and real verification results, or explicitly name the remaining external blocker.
+
+## Cloud video
+
+Use `video_providers` in the guarded settings API or setup helper. Supported protocols are ark, minimax (official H3 V2), replicate, and fal. Read the current README and AGENTS.md for profile fields and supported input modes. Preserve other profiles when replacing the list; blank keys retain saved secrets. The model catalogue exposes `cloud-<id>`. Do not import cloud profiles as ComfyUI graphs or request a global GPU restart. Configuration is not a paid inference test. Live generation requires the user's provider key and authorization for the intended production scope.

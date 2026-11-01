@@ -8,6 +8,7 @@ from runtime_config import RuntimeConfig
 from review_contract import ReviewContract
 from trash_manager import TrashManager
 import storyboard
+import cloud_video
 from concurrent.futures import ThreadPoolExecutor
 ROOT=Path(__file__).resolve().parent
 DATA=Path(os.getenv('SHOTDESK_DATA_DIR',str(ROOT/'data'))); DATA.mkdir(parents=True,exist_ok=True)
@@ -25,6 +26,8 @@ LOCK=threading.RLock(); OP=urllib.request.build_opener(urllib.request.ProxyHandl
 def apply_service_settings():
     global TEXT,TEXT_MODEL,VISION_API,VISION_MODEL,INDEXTTS,_llm_catalog_cache
     cfg=SETTINGS.read()
+    import h3_structured
+    h3_structured.CLOUD_MODELS={'cloud-'+x['id']:x['model'] for x in cfg.get('video_providers',[]) if x.get('enabled',True)}
     if 'llm_url' in cfg:TEXT=cfg['llm_url']+'/chat/completions' if cfg['llm_url'] else ''
     TEXT_MODEL=cfg.get('llm_model') or os.getenv('TEXT_MODEL','Qwen3.8-27B')
     VISION_API=os.getenv('VISION_API') or TEXT;VISION_MODEL=cfg.get('vision_model') or os.getenv('VISION_MODEL') or TEXT_MODEL
@@ -35,7 +38,7 @@ apply_service_settings()
 
 def service_settings():
     cfg=SETTINGS.read()
-    return {'llm_url':TEXT.rsplit('/chat/completions',1)[0] if TEXT else '', 'llm_model':TEXT_MODEL if TEXT else '','comfy_url':Q.comfy,'speech_url':INDEXTTS,'vision_model':VISION_MODEL,'api_key_configured':bool(cfg['llm_api_key']) if 'llm_api_key' in cfg else bool(TEXT_KEY_FILE),'password_configured':SETTINGS.has_password(),'workflow_adapter':'external' if os.getenv('TRANSPORT_MODULE') else 'portable','storyboard_default':'h3-structured-v2'}
+    return {'llm_url':TEXT.rsplit('/chat/completions',1)[0] if TEXT else '', 'llm_model':TEXT_MODEL if TEXT else '','comfy_url':Q.comfy,'speech_url':INDEXTTS,'vision_model':VISION_MODEL,'api_key_configured':bool(cfg['llm_api_key']) if 'llm_api_key' in cfg else bool(TEXT_KEY_FILE),'password_configured':SETTINGS.has_password(),'workflow_adapter':'external' if os.getenv('TRANSPORT_MODULE') else 'portable','storyboard_default':'h3-structured-v2','video_providers':cloud_video.public_profiles(cfg.get('video_providers',[]))}
 
 def test_service_settings(body):
     kind=body.get('service');cfg=SETTINGS.read()
@@ -267,7 +270,7 @@ def sync_shot_mentions(p,shot,strict=False):
         shot.setdefault('character_looks',{}).update(explicit)
     return references
 
-def compile_shot_prompt(p,shot,kind,inputs):
+def local_compile_shot_prompt(p,shot,kind,inputs):
     if shot.get('prompt_format')=='h3-structured-v2':
         import h3_structured
         return h3_structured.compile(p,shot,kind,inputs,video_mode(shot,p),video_model(shot,p))
@@ -303,6 +306,12 @@ def compile_shot_prompt(p,shot,kind,inputs):
     compiled=text
     for ref in reversed(references):compiled=compiled[:ref['start']]+ref['replacement']+compiled[ref['end']:]
     return compiled.replace('@@','@'),bindings
+
+def compile_shot_prompt(p,shot,kind,inputs):
+    text,bindings=local_compile_shot_prompt(p,shot,kind,inputs)
+    provider=cloud_video.profile(SETTINGS,video_model(shot,p)) if kind=='video' else None
+    if provider:text=cloud_video.compile_prompt(provider,text,inputs)
+    return text,bindings
 
 def preview_shot_prompt(pid,body):
     p=load(pid);kind=body.get('kind','video')
@@ -448,6 +457,7 @@ def validate_video_resolution(config):
         if any(isinstance(v,bool) or not isinstance(v,int) or v<128 or v>4096 or v%2 for v in values):raise ValueError('自定义宽高须为128–4096之间的偶数整数')
         if values[0]*values[1]>8388608:raise ValueError('自定义视频画布不能超过800万像素')
 def video_supports_resolution(model):
+    if cloud_video.profile(SETTINGS,model):return True
     engine=Q.engine()
     if getattr(engine,'PORTABLE',False):return any(x['id']==model and x['supports_resolution'] for x in engine.catalog()['videos'])
     spec=Q.engine().recipes.VIDEOS.get(model)
@@ -469,7 +479,7 @@ def video_resolution_input(shot,p,model):
         if p['ratio']=='9:16':width,height=height,width
     return {'preset':config['preset'],'width':width,'height':height,'source':'shot' if explicit else 'project'}
 
-def model_catalog():
+def local_model_catalog():
     engine=Q.engine()
     if getattr(engine,'PORTABLE',False):
         value=engine.catalog()
@@ -483,6 +493,13 @@ def model_catalog():
         image_specs.append({'id':name,'display_name':getattr(engine,'IMAGE_LABELS',{}).get(name,name),'max_references':spec[1] if spec else (16 if name in getattr(engine,'OFFICIAL_QWEN_TURBO',{}) else 1),'operation':'enhance' if family in ('pkg_image_vsr','pkg_image_4x') else 'generate','requires_image':family in ('pkg_image_vsr','pkg_image_4x','gguf_control')})
     mapped={model for spec in VIDEO_STRATEGIES.values() for model in spec['models']}
     return {'images':image_specs,'videos':[{'id':name,'modes':[mode for mode,spec in VIDEO_STRATEGIES.items() if name in spec['models']],'supports_resolution':video_supports_resolution(name),'canonical_model':VIDEO_MODEL_ALIASES.get(name,(name,None))[0],'legacy_resolution':VIDEO_MODEL_ALIASES.get(name,(name,None))[1]} for name in engine.VIDEO_MODELS], 'strategies':VIDEO_STRATEGIES,'unmapped_videos':sorted(set(engine.VIDEO_MODELS)-mapped),'video_resolutions':{k:list(v) for k,v in VIDEO_RESOLUTIONS.items()},'speech':{'model':'index-tts-2','kind':'audio','target':'shot','requires':['speaker_id','dialogue','人物默认声线或镜头voice_id对应的音频参考'],'precise_stop':False}}
+
+def model_catalog():
+    value=local_model_catalog();value['videos'].extend(cloud_video.catalog(SETTINGS))
+    value['strategies']=copy.deepcopy(value['strategies'])
+    for mode,spec in value['strategies'].items():
+        spec['models']=list(dict.fromkeys(spec['models']+[x['id'] for x in value['videos'] if mode in x['modes']]))
+    return value
 
 def upload_guide(pid,body):
     load(pid)
@@ -591,7 +608,7 @@ def launch(pid, target, target_id, kind, batch_id=None):
                 source_images=[x['url'] for x in image_inputs]
                 body.update(image=list(map(reference,source_images)),metadata={'gen_mode':'imageReference'})
             elif mode in ('first_frame','audio','music'):
-                if mode=='first_frame' and body['model'] not in FIRST_FRAME_VIDEO_MODELS:raise ValueError('当前模型不支持首帧模式，请选择I2V模型或切换参考资产模式')
+                if mode=='first_frame' and body['model'] not in FIRST_FRAME_VIDEO_MODELS and not any(x['id']==body['model'] and 'first_frame' in x['modes'] for x in model_catalog()['videos']):raise ValueError('当前模型不支持首帧模式，请选择I2V模型或切换参考资产模式')
                 source=obj.get('image')
                 if not source:raise ValueError('请先生成或上传首帧图')
                 body.update(first_frame_image=reference(source))
@@ -608,11 +625,20 @@ def launch(pid, target, target_id, kind, batch_id=None):
                 source_video=obj.get('reference_video') or (obj.get('video') if mode in ('upscale','interpolate') else None)
                 if not source_video:raise ValueError('请先上传参考视频，或为视频处理选择已有镜头视频')
                 body.setdefault('metadata',{}).update(gen_mode='allReference',reference_videos=[reference(source_video)])
+        cloud=cloud_video.profile(SETTINGS,body['model']) if kind=='video' else None
+        if cloud:
+            config=obj.get('video_resolution') or (obj.get('video_override') or {}).get('resolution') or p.get('video_resolution')
+            if config:
+                preset=config['preset'];allowed={'768p':'768P','2k':'2K'} if cloud['protocol']=='minimax' else {'480p':'480p','720p':'720p','1080p':'1080p'}
+                if preset not in allowed:raise ValueError('此云端服务不支持所选分辨率，请选择服务原生档位，不支持自定义宽高')
+                body['cloud_resolution']=allowed[preset]
         original_prompt=prompt;reference_bindings=[]
         if target=='shot':
             if kind=='image' and body['model'] in ('RedCraft-Package-FlashVSR-Image-2x','RedCraft-Package-ClearReality-Image-4x') and scan_prompt_mentions(p,obj,prompt,True):raise ValueError('图片增强只使用当前图，不支持@资产引用')
             body['prompt'],reference_bindings=compile_shot_prompt(p,obj,kind,image_inputs)
-        j={'id':uid(),'kind':kind,'target':target,'target_id':target_id,'status':'queued','created':time.time(),'request':body,'source_image':source,'source_images':source_images,'source_audio':source_audio,'source_video':source_video,'audio_input':audio_input,'image_inputs':image_inputs,'video_mode':mode,'model':body['model'],'title':obj.get('name') or obj.get('title') or target_id,'transport':'comfy','video_duration':body.get('duration'),'video_resolution':resolution_input,'original_prompt':original_prompt,'reference_bindings':reference_bindings,'batch_id':batch_id}
+        if cloud:
+            cloud_video.payload(cloud,body)  # Validate before charging or enqueueing.
+        j={'id':uid(),'kind':kind,'target':target,'target_id':target_id,'status':'queued','created':time.time(),'request':body,'source_image':source,'source_images':source_images,'source_audio':source_audio,'source_video':source_video,'audio_input':audio_input,'image_inputs':image_inputs,'video_mode':mode,'model':body['model'],'title':obj.get('name') or obj.get('title') or target_id,'transport':'cloud' if cloud else 'comfy','video_duration':body.get('duration'),'video_resolution':resolution_input,'original_prompt':original_prompt,'reference_bindings':reference_bindings,'batch_id':batch_id}
         return Q.enqueue(pid,j)
 
 def clear_workspace(pid,kind,body):
@@ -1388,7 +1414,7 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/llm-models':return self.reply(llm_catalog())
             if path=='/api/model-catalog':return self.reply(model_catalog())
             if path=='/api/video-modes':
-                if getattr(Q.engine(),'PORTABLE',False):
+                if getattr(Q.engine(),'PORTABLE',False) or cloud_video.catalog(SETTINGS):
                     cat=model_catalog();return self.reply({'reference':{x['id']:x['max_references'] for x in cat['videos'] if 'reference' in x['modes']},'first_frame':cat['strategies']['first_frame']['models'],'strategies':cat['strategies']})
                 return self.reply({'reference':REFERENCE_VIDEO_MODELS,'first_frame':FIRST_FRAME_VIDEO_MODELS,'legacy_default':'first_frame','scope':'project_default_with_shot_override','strategies':VIDEO_STRATEGIES})
             if path=='/api/storyboard-skill':
@@ -1409,7 +1435,7 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/projects':
                 return self.reply([{'id':p['id'],'name':p['name'],'updated':p.get('updated',0),'shots':len(p['shots'])} for f in DATA.glob('*/project.json') for p in [json.loads(f.read_text())]])
             if path=='/api/health':
-                return self.reply({'configured':bool(Q.comfy),'comfy':test_service_settings({'service':'comfy','url':Q.comfy}) if Q.comfy else {'ok':False},'speech_configured':bool(INDEXTTS)})
+                return self.reply({'cloud_video_configured':any(x.get('api_key') and x.get('enabled',True) for x in SETTINGS.read().get('video_providers',[])),'configured':bool(Q.comfy),'comfy':test_service_settings({'service':'comfy','url':Q.comfy}) if Q.comfy else {'ok':False},'speech_configured':bool(INDEXTTS)})
             mentions=re.fullmatch('/api/projects/([a-f0-9]{32})/mention-catalog',path)
             if mentions:return self.reply({'items':mention_catalog(load(mentions[1]))})
             match=re.fullmatch('/api/projects/([a-f0-9]{32})(/jobs)?',path)
@@ -1431,7 +1457,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.path!='/api/session' and not self.access_gate():return
             size=int(self.headers.get('Content-Length',0))
             if self.path.startswith('/api/workflows/') and size>4*1024*1024:raise ValueError('工作流文件最多4MB')
-            if self.path in ('/api/session','/api/settings','/api/settings/test') and size>16384:raise ValueError('设置请求过大')
+            if self.path in ('/api/session','/api/settings','/api/settings/test') and size>131072:raise ValueError('设置请求过大')
             if size>65*1024*1024: raise ValueError('上传请求过大，音视频素材最多48MB')
             body=json.loads(self.rfile.read(size) or '{}'); path=self.path
             if path=='/api/session':

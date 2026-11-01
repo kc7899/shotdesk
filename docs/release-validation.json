@@ -82,5 +82,23 @@
     "runtime_config.py": "c07dc92b7974aa235f27da9f0adc61b45118c34cc2992cc2a04d90f251e6458e",
     "scripts/shotdesk_setup.py": "1d885364a81691cf79e52a5ec366f4bccbc4832a67410c05e3f99673ba5fc82f",
     "scripts/shotdesk_smoke.py": "6bf623972ac0b7233b652bb43d4f3523e75831bae41f8203859b058bf9790b85"
+  },
+  "cloud_video_maintenance": {
+    "date": "2026-11-02",
+    "protocols": [
+      "ark",
+      "minimax-v2",
+      "replicate",
+      "fal"
+    ],
+    "full_h3_model": "MiniMax-H3",
+    "public_tests_run": 300,
+    "optional_legacy_skips": 9,
+    "development_tests_run": 476,
+    "frontend_suites_passed": 11,
+    "protocol_tests": "local fake HTTP services; asset order, selected look, preview equality, queue output, credential redaction, task recovery, cancellation semantics",
+    "live_cloud_inference_verified": false,
+    "reason": "No provider API key supplied; no paid generation submitted",
+    "existing_local_models_preserved": true
   }
 }

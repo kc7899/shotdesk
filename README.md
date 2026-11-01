@@ -26,7 +26,7 @@ Our goal is autonomous production from start to finish, with as little human int
 
 ## 独立安装
 
-需要 Docker Compose；LLM 和 ComfyUI 由你自行部署，本仓库不下载模型权重、不自动启动 GPU 服务。
+需要 Docker Compose；LLM 服务由你提供，图片可连接自己的 ComfyUI；视频可选 ComfyUI 或云端 API。使用本地模型时由你自行部署 ComfyUI。本仓库不下载模型权重、不自动启动 GPU 服务。
 
 ```bash
 cp .env.example .env
@@ -61,6 +61,23 @@ docker compose up -d --build
 支持 ComfyUI API 格式图，通过节点输入映射 prompt、seed、width、height、duration/frames/fps、first_frame 或 image_0…N。可直接导入含 `graph` 和 `bindings` 的 Shotdesk 工作流配置，或在界面为原生 API JSON 设置映射。详细格式见 [工作流接入](docs/workflows.md)。
 
 默认安装不会出现本机未提供的几十个模型。已导入、依赖检查和实机验证是不同状态。通用适配器当前支持图片、文字生视频、首帧和资产参考；音频/视频参考输入需要对应专用适配器，导入时不会伪装成支持。
+
+## 云端视频：Seedance 与 MiniMax H3
+
+在顶部 **服务连接 → 云端视频 → 添加云端视频服务**，选择协议，填写 API Key 和实际开放的模型 ID，保存后在项目“模型设置”选择该服务。可以添加多个服务，镜头仍支持独立选择。
+
+- **火山方舟 / 兼容中转**：Seedance，默认地址 `https://ark.cn-beijing.volces.com/api/v3`。
+- **MiniMax 官方 V2 / 兼容中转**：默认 `https://api.minimax.io`、`MiniMax-H3`，官方高质量完整模型，支持原生 768P / 2K、4–15整秒；与本地蒸馏工作流分开。
+- **Replicate**：默认 `bytedance/seedance-2.5`，使用平台 API Key。
+- **fal**：默认资产参考端点 `bytedance/seedance-2.5/reference-to-video`。文字、首帧端点需分别添加，并只勾选对应生成方式。
+
+每种协议都支持自定义服务地址；中转站必须兼容所选协议，不是任意网址都能使用。默认模型 ID 是配置示例，请核对账号实际开放的版本、能力和收费。
+
+角色采用所选造型图，参考图按关联资产顺序传入。首帧模式只传首帧，不混用资产图。当前云端接入范围是文字、首帧和图片资产参考；尚未接通云端音视频参考或首尾帧输入。图片通过 data URL 发送，无需公开本地媒体地址。
+
+任务进入统一队列，结果下载到项目并保留历史。密钥仅保存在私有服务设置，留空保留、勾选清除才删除。保存设置不产生付费任务；提交结果不明时不会自动重提。停止受服务商限制：官方 H3 运行中无法立即取消，平台等待上游结束，期间可能继续计费。本次接口测试使用模拟服务，实际账号推理和画面质量须单独验证。
+
+Cloud video providers are configured under **Service connections → Cloud video**. Supported protocols: Volcano Ark / compatible gateways, official MiniMax H3 V2, Replicate Seedance, and fal Seedance. Configure your own key and actual model ID, then select the service in project model settings. The integration currently supports text, first-frame and image-reference generation. Credentials stay private; jobs share the queue and downloaded version history. Saving does not submit a paid job. Running official H3 jobs cannot be cancelled immediately. Protocol tests use local fake services; live paid generation still requires separate verification.
 
 ## 数据、备份与访问
 

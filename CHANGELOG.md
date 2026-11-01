@@ -1,5 +1,9 @@
 # 变更记录
 
+## Unreleased
+
+- Added cloud video providers: Seedance via Volcano Ark, Replicate and fal, plus official full-quality MiniMax H3 V2 and compatible gateways. Shared asset binding, task persistence, cancellation confirmation and local media history. Provider credentials stay private. Real cloud inference is not yet verified.
+
 ## 2026-11-01 · 动态选择默认LLM
 
 服务连接从/v1/models获取默认模型下拉列表；保留原选择，仅一个模型时自动选中，多个时显式选择。获取不到列表可切换手动ID；过期响应不会覆盖新服务，清除密钥测试不会复用旧密钥。

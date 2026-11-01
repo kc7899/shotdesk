@@ -39,11 +39,13 @@ def model_rules(model):
     """Constraints of the target video model. Pika-H3-Flex is a LoRA on the same
     MiniMax H3 Ref2VA node (workflow pika_h3_flex_r2v), so the prompt format is the
     same; only its local workflow accepts integer 5-15 s durations."""
-    m = str(model or '')
+    m = globals().get('CLOUD_MODELS',{}).get(str(model),str(model or ''))
+    if 'seedance' in m.lower():
+        return {'family':'seedance','min':4,'max':30 if '2.5' in m or '2-5' in m else 15,'integer':True,'h3':False}
     if 'pika' in m.lower():
         return {'family': 'pika-h3-flex', 'min': 5, 'max': 15, 'integer': True, 'h3': True}
     if re.search(r'minimax|(?:^|[-_])h3(?:[-_]|$)', m, re.I):
-        return {'family': 'minimax-h3', 'min': 4, 'max': 15, 'integer': False, 'h3': True}
+        return {'family': 'minimax-h3', 'min': 4, 'max': 15, 'integer': str(model).startswith('cloud-'), 'h3': True}
     return {'family': 'generic', 'min': 4, 'max': 15, 'integer': False, 'h3': False}
 
 

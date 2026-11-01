@@ -40,6 +40,7 @@ def doctor(client,probe_local=False):
             state={'status':'connected' if result.get('ok') else 'unreachable','optional':kind=='speech','generation_verified':False}
             if kind=='llm':state.update(models=result.get('models',[]),selected=settings.get('llm_model'),selected_listed=settings.get('llm_model') in result.get('models',[]))
             report['services'][kind]=state
+        report['services']['cloud_video']={'status':'configured' if any(x.get('key_configured') and x.get('enabled',True) for x in settings.get('video_providers',[])) else 'not_configured','generation_verified':False,'providers':[{k:x.get(k) for k in ('id','name','protocol','model','enabled','key_configured')} for x in settings.get('video_providers',[])]}
         catalog=client.call('/api/model-catalog');report['workflows']=[{'id':x['id'],'kind':kind} for key,kind in [('images','image'),('videos','video')] for x in catalog.get(key,[])]
         jobs=client.call('/api/jobs');report['active_tasks']=sum(j.get('status') in ('queued','running','cancelling') for j in jobs);report['diagnostics_complete']=True
     except ValueError as exc:report['studio']['error']=str(exc)
@@ -57,7 +58,7 @@ def doctor(client,probe_local=False):
 
 def configure(client,path,allow_offline=False):
     config=json.loads(Path(path).read_text())
-    allowed={'llm_url','llm_model','llm_api_key','comfy_url','speech_url','vision_model','access_password','clear_api_key'}
+    allowed={'llm_url','llm_model','llm_api_key','comfy_url','speech_url','vision_model','access_password','clear_api_key','video_providers'}
     if not isinstance(config,dict) or set(config)-allowed:raise ValueError('Unsupported settings fields')
     if config.get('llm_url') and not config.get('llm_model'):raise ValueError('Select an actual model ID; use doctor to discover models first')
     for kind,key in [('llm','llm_url'),('comfy','comfy_url'),('speech','speech_url')]:

@@ -17,3 +17,9 @@ GET/POST `/api/settings` manages sanitized connection settings; `/api/settings/t
 With access protection enabled, supply a Bearer password/token or login cookie. Clear shots/assets only with explicit authorization, current `confirm_name`, `expected_updated` and reset epochs. Deleting a project keeps it in Trash for seven days.
 
 Interface language (`shotdesk.uiLanguage` in the browser) is independent of the project's `prompt_language` (`zh`/`en`). Changing the interface does not translate scripts, prompts, asset names or API enum values. Preserve original dialogue and user-authored content.
+
+## Cloud video providers
+
+Read the redacted `video_providers` array from `/api/settings`. Configure providers through the guarded settings endpoint with stable `id`, `name`, `protocol` (`ark`, `minimax`, `replicate`, `fal`), `url`, actual `model`, private `api_key`, native `resolution`, `max_references`, `modes` and `enabled`. Preserve other entries when replacing the array. Blank keys retain existing secrets; `clear_key:true` removes them. Choose the returned `cloud-<id>` from the model catalogue, then use the same generation and preview APIs as local workflows. The official full-quality H3 model is `MiniMax-H3` over MiniMax V2, 768P/2K, integer 4–15 seconds. Current cloud support covers text, first-frame and image references, not audio/video references or last frames. Each fal endpoint must declare its actual single generation mode.
+
+Cloud task IDs are persisted for restart recovery; never resubmit an ambiguous paid request automatically. A running official H3 task cannot immediately be cancelled. Keep cancellation pending until upstream termination is confirmed; billing may continue. Configured and mock-tested do not mean live-generation verified.

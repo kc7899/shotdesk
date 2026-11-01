@@ -5,6 +5,22 @@ const storageKey='shotdesk.uiLanguage';
 let locale='zh';try{locale=localStorage.getItem(storageKey)==='en'?'en':'zh'}catch{}
 const translations={};
 const entries=`
+云端视频|Cloud video
+Seedance、MiniMax H3 官方完整模型及兼容中转服务；按服务商计费。|Seedance, full official MiniMax H3, and compatible gateways; provider charges apply.
+＋ 添加云端视频服务|＋ Add cloud video provider
+服务名称|Service name
+接口协议|API protocol
+服务地址|Service URL
+模型 ID|Model ID
+原生分辨率|Native resolution
+最多参考图|Maximum reference images
+启用|Enabled
+清除密钥|Clear key
+移除服务|Remove service
+请输入 API 密钥|Enter API key
+填写服务实际开放的模型 ID。fal 每个端点对应一种生成方式，请分别添加。留空密钥保留原配置；保存不执行付费生成。|Enter an available model ID. Add each fal generation endpoint separately. Leave the key blank to keep it. Saving does not submit paid jobs.
+● 云端视频已配置|● Cloud video configured
+
 片场 · 短剧工作台|Shotdesk · Short drama studio
 进入片场|Sign in to Shotdesk
 Agent 接入 · 片场|Agent access · Shotdesk
