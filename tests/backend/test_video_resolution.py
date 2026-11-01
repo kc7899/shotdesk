@@ -4,7 +4,7 @@ from unittest.mock import patch
 import server as m
 class VideoResolution(unittest.TestCase):
  def setUp(self):
-  from test_support import legacy_engine
+  from tests.support import legacy_engine
   guard=patch.object(m.Q,'engine',return_value=legacy_engine(m));guard.start();self.addCleanup(guard.stop)
   t=tempfile.TemporaryDirectory();self.addCleanup(t.cleanup);fix=patch.object(m,'DATA',Path(t.name));fix.start();self.addCleanup(fix.stop);self.pid='a'*32;m.project(self.pid).parent.mkdir()
   self.p={'id':self.pid,'ratio':'16:9','image_model':'Flux2-Klein-4B-4step-1K','video_mode':'reference','video_model':'MiniMaxH3-RedCraft-A2A-beta1-8step-R2V-2K','assets':[{'id':'a','type':'场景','image':'/room.png'}],'shots':[{'id':'s','duration':4,'video_prompt':'Duration: 4s\nA quiet room.','image_prompt':'A room.','asset_ids':['a'],'versions':[]}]}

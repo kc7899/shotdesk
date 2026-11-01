@@ -1,7 +1,7 @@
 import copy,importlib.util,json,tempfile,threading,time,unittest,subprocess,sys
 from pathlib import Path
 from unittest.mock import patch,Mock
-spec=importlib.util.spec_from_file_location('shotdesk',Path(__file__).with_name('server.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+spec=importlib.util.spec_from_file_location('shotdesk',Path(__file__).resolve().parents[2]/'server.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 from task_queue import Cancelled
 class QueueContracts(unittest.TestCase):
  def setUp(self):
@@ -10,7 +10,7 @@ class QueueContracts(unittest.TestCase):
   self.q=m.TaskQueue(m.AppContext());self.qpatch=patch.object(m,'Q',self.q);self.qpatch.start()
   self.llmpatch=patch.object(m,'llm_catalog',return_value={'default':m.TEXT_MODEL,'models':[{'id':m.TEXT_MODEL,'available':True}],'available':True});self.llmpatch.start()
   self.addCleanup(self.llmpatch.stop)
-  from test_support import legacy_engine
+  from tests.support import legacy_engine
   engine_patch=patch.object(self.q,'engine',return_value=legacy_engine(m));engine_patch.start();self.addCleanup(engine_patch.stop)
  def tearDown(self):self.qpatch.stop();self.patch.stop();self.temp.cleanup()
  def job(self,kind='image',**kw):

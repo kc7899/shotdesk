@@ -2,14 +2,14 @@
 import argparse,hashlib,json,re,shutil
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-FILES=['server.py','runtime_config.py','workflow_transport.py','task_queue.py','storyboard.py','h3_structured.py','source_storyboard.py','coverage_director.py','review_contract.py','trash_manager.py','README.md','AGENTS.md','CHANGELOG.md','DEVELOPMENT.md','THIRD_PARTY_NOTICES.md','Dockerfile','compose.yaml','.env.example','.gitignore','.dockerignore','test_support.py','SECURITY.md','CONTRIBUTING.md']
+FILES=['server.py','runtime_config.py','workflow_transport.py','task_queue.py','storyboard.py','h3_structured.py','source_storyboard.py','coverage_director.py','review_contract.py','trash_manager.py','README.md','AGENTS.md','CHANGELOG.md','DEVELOPMENT.md','THIRD_PARTY_NOTICES.md','Dockerfile','compose.yaml','.env.example','.gitignore','.dockerignore','SECURITY.md','CONTRIBUTING.md']
 def export(output):
     output=Path(output).resolve()
     if output==ROOT or output.is_relative_to(ROOT) or ROOT.is_relative_to(output):raise ValueError('输出目录必须位于项目之外，不能覆盖当前项目或上级目录')
     if output.exists() and any(output.iterdir()):raise ValueError('输出目录必须为空，避免覆盖其他文件')
     output.mkdir(parents=True,exist_ok=True)
-    selected=[ROOT/f for f in FILES]+([ROOT/'LICENSE'] if (ROOT/'LICENSE').exists() else [])+list(ROOT.glob('test_*.py'))+list(ROOT.glob('test_*.js'))
-    for folder in ('static','examples','docs/skills','.github'):
+    selected=[ROOT/f for f in FILES]+([ROOT/'LICENSE'] if (ROOT/'LICENSE').exists() else [])
+    for folder in ('static','examples','docs/skills','.github','tests'):
         selected.extend(p for p in (ROOT/folder).rglob('*') if p.is_file())
     selected.extend(ROOT/'docs'/x for x in ('agent-control.md','agent-control.en.md','workflows.md','llms.txt','local-setup.md','local-setup.en.md','operations.md','release-notes.md','source-audit.json','release-validation.json'))
     selected.extend(ROOT/'scripts'/x for x in ('export_release.py','shotdesk_setup.py','shotdesk_smoke.py'))
@@ -19,12 +19,12 @@ def export(output):
         target=output/rel;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,target)
     # Optional historical Huobao prompt/Skill package stays in the private workspace.
     p=output/'static/index.html';s=p.read_text();s=s.replace('<option value="huobao-native-v1">Huobao 原版（回滚）</option>','');p.write_text(s)
-    p=output/'test_huobao_native.py';s=p.read_text()
+    p=output/'tests/legacy/test_huobao_native.py';s=p.read_text()
     if "optional Huobao package not distributed" not in s:
         s=s.replace('import huobao_native as h',"try:import huobao_native as h\nexcept ImportError:raise unittest.SkipTest('optional Huobao package not distributed')")
         s=s.replace('m=test_queue.m',"m=test_queue.m\nif not (m.ROOT/'docs/huobao-native').exists():raise unittest.SkipTest('optional Huobao package not distributed')")
     p.write_text(s)
-    p=output/'test_storyboard_official.py';s=p.read_text()
+    p=output/'tests/legacy/test_storyboard_official.py';s=p.read_text()
     if 'optional unlicensed upstream reference fixtures' not in s:
         s=s.replace('m=test_queue.m',"m=test_queue.m\nif not (m.ROOT/'docs/skills/shotdesk-storyboard/references/h3-ref-en.txt').exists():raise unittest.SkipTest('optional unlicensed upstream reference fixtures are not distributed')")
     p.write_text(s)

@@ -1,7 +1,7 @@
 import importlib.util,json,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
-spec=importlib.util.spec_from_file_location('shotdesk',Path(__file__).with_name('server.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+spec=importlib.util.spec_from_file_location('shotdesk',Path(__file__).resolve().parents[2]/'server.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 class ProjectDelete(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.patch=patch.object(m,'DATA',Path(self.tmp.name));self.patch.start();self.pid='c'*32;self.root=Path(self.tmp.name)/self.pid;(self.root/'jobs').mkdir(parents=True);(self.root/'media').mkdir();self.p={'id':self.pid,'name':'待删除项目','assets':[],'shots':[]};m.save(self.root/'project.json',self.p);(self.root/'media/file.png').write_bytes(b'media')

@@ -1,7 +1,7 @@
 import io,unittest,json
 from pathlib import Path
 from unittest.mock import patch,Mock
-import test_queue
+from tests.backend import test_queue
 m=test_queue.m
 class QueueIndex(unittest.TestCase):
  setUp=test_queue.QueueContracts.setUp

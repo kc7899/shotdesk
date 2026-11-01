@@ -3,8 +3,8 @@
 Use an isolated checkout and synthetic projects. Do not run tests against production projects or stop shared inference services.
 
 ```bash
-python3 -m unittest discover -p 'test_*.py'
-for f in test_*.js; do node "$f" || exit 1; done
+python3 -m unittest discover -s tests -t . -p 'test_*.py'
+for f in tests/frontend/test_*.js; do node "$f" || exit 1; done
 python3 scripts/export_release.py --output /tmp/shotdesk-candidate
 ```
 

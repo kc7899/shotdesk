@@ -1,8 +1,8 @@
 import copy, unittest
 from unittest.mock import patch
-import test_queue
+from tests.backend import test_queue
 import storyboard as b
-import test_h3_structured as fx
+from tests.backend import test_h3_structured as fx
 m = test_queue.m
 
 

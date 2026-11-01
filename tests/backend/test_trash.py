@@ -1,7 +1,7 @@
 import importlib.util,json,tempfile,unittest,datetime,time
 from pathlib import Path
 from unittest.mock import patch
-spec=importlib.util.spec_from_file_location('shotdesk',Path(__file__).with_name('server.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+spec=importlib.util.spec_from_file_location('shotdesk',Path(__file__).resolve().parents[2]/'server.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 class TrashTests(unittest.TestCase):
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.patch=patch.object(m,'DATA',Path(self.temp.name));self.patch.start();self.now=time.time();self.manager=m.TrashManager(m.AppContext())

@@ -1,6 +1,6 @@
 import io,json,unittest
 from unittest.mock import patch,Mock
-import test_queue
+from tests.backend import test_queue
 m=test_queue.m
 
 class ScreenwriterSkillContracts(unittest.TestCase):

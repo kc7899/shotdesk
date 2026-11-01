@@ -1,7 +1,7 @@
 import copy,importlib.util,json,tempfile,threading,time,unittest
 from pathlib import Path
 from unittest.mock import patch
-spec=importlib.util.spec_from_file_location('shotdesk',Path(__file__).with_name('server.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+spec=importlib.util.spec_from_file_location('shotdesk',Path(__file__).resolve().parents[2]/'server.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 class BatchReview(unittest.TestCase):
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.patch=patch.object(m,'DATA',Path(self.temp.name));self.patch.start();self.pid='a'*32;self.root=Path(self.temp.name)/self.pid;(self.root/'jobs').mkdir(parents=True);(self.root/'media').mkdir()

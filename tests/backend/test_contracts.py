@@ -2,7 +2,7 @@
 import importlib.util,tempfile,unittest,json
 from pathlib import Path
 from unittest.mock import patch
-spec=importlib.util.spec_from_file_location('shotdesk',Path(__file__).with_name('server.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+spec=importlib.util.spec_from_file_location('shotdesk',Path(__file__).resolve().parents[2]/'server.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 class Contracts(unittest.TestCase):
  def test_background_result_survives_prompt_edit(self):
   p={'assets':[],'shots':[{'id':'s','image':'new.png','versions':[{'id':'v2'}]}]}

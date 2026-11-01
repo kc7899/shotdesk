@@ -1,8 +1,8 @@
 import copy,unittest,json
 from unittest.mock import patch
 import storyboard as b
-import test_queue
-import test_storyboard_official as fixtures
+from tests.backend import test_queue
+from tests.legacy import test_storyboard_official as fixtures
 m=test_queue.m
 class DialogueRanges(unittest.TestCase):
  setUp=test_queue.QueueContracts.setUp

@@ -9,6 +9,6 @@ jobs:
         with: {python-version: '3.12'}
       - uses: actions/setup-node@v4
         with: {node-version: '20'}
-      - run: python3 -m unittest discover -p 'test_*.py'
-      - run: for f in test_*.js; do node "$f" || exit; done
+      - run: python3 -m unittest discover -s tests -t . -p 'test_*.py'
+      - run: for f in tests/frontend/test_*.js; do node "$f" || exit; done
       - run: docker build -t shotdesk:check .

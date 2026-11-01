@@ -1,7 +1,7 @@
 import copy,json,unittest
 from unittest.mock import patch
-import test_queue
-import test_storyboard_official as fixtures
+from tests.backend import test_queue
+from tests.legacy import test_storyboard_official as fixtures
 import storyboard as b
 
 # Legacy scheme tests: pin the pre-h3-structured-v2 default so they keep exercising the old pipeline.

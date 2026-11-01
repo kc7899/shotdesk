@@ -2,8 +2,8 @@
 import importlib.util,json,sys,tempfile,unittest
 from pathlib import Path
 from types import SimpleNamespace
-import test_portable as fixtures
-ROOT=Path(__file__).parent
+from tests.backend import test_portable as fixtures
+ROOT=Path(__file__).resolve().parents[2]
 spec=importlib.util.spec_from_file_location('shotdesk_setup',ROOT/'scripts/shotdesk_setup.py');setup=importlib.util.module_from_spec(spec);spec.loader.exec_module(setup);sys.modules['shotdesk_setup']=setup
 spec=importlib.util.spec_from_file_location('shotdesk_smoke',ROOT/'scripts/shotdesk_smoke.py');smoke=importlib.util.module_from_spec(spec);spec.loader.exec_module(smoke)
 class SetupTools(unittest.TestCase):

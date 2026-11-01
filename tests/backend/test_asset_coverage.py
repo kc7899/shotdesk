@@ -1,6 +1,6 @@
 import copy,json,unittest
 from unittest.mock import patch
-import test_queue
+from tests.backend import test_queue
 m=test_queue.m
 class AssetCoverage(unittest.TestCase):
  setUp=test_queue.QueueContracts.setUp

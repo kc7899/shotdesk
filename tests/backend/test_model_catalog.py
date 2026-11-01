@@ -5,7 +5,7 @@ from unittest.mock import patch
 import server as m
 class AllModels(unittest.TestCase):
  def setUp(self):
-  from test_support import legacy_engine
+  from tests.support import legacy_engine
   guard=patch.object(m.Q,'engine',return_value=legacy_engine(m));guard.start();self.addCleanup(guard.stop)
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
   fix=patch.object(m,'DATA',Path(self.tmp.name));fix.start();self.addCleanup(fix.stop)

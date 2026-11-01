@@ -1,6 +1,6 @@
 import copy,json,unittest
 from unittest.mock import patch
-import test_queue
+from tests.backend import test_queue
 m=test_queue.m
 
 class AssetExtractionContracts(unittest.TestCase):

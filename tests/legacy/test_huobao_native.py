@@ -1,6 +1,6 @@
 import copy,hashlib,json,re,unittest
 from unittest.mock import patch
-import test_queue
+from tests.backend import test_queue
 try:import huobao_native as h
 except ImportError:raise unittest.SkipTest('optional Huobao package not distributed')
 import storyboard as b

@@ -1,7 +1,7 @@
 const uiContext=()=>{const c={};require('vm').runInNewContext(require('fs').readFileSync('static/i18n.js','utf8'),c);return c.ShotdeskI18n.text};
 // Execute the real frontend save/refresh guard with delayed mocked HTTP.
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const source=fs.readFileSync(__dirname+'/static/app.js','utf8');
+const source=fs.readFileSync(__dirname+'/../../static/app.js','utf8');
 const resources=source.slice(source.indexOf('function frontendResources('),source.indexOf('function audioAssets('));
 const code=source.slice(source.indexOf('async function save(){'),source.indexOf('async function list()'));
 const context=vm.createContext({ui:uiContext(),structuredClone,clearTimeout,console});

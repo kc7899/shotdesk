@@ -1,7 +1,7 @@
 import copy,json,unittest
 from unittest.mock import patch
-import test_queue
-import test_storyboard_official as fixtures
+from tests.backend import test_queue
+from tests.legacy import test_storyboard_official as fixtures
 import storyboard as b
 import source_storyboard as source
 import coverage_director as d

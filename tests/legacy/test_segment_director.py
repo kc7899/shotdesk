@@ -1,10 +1,10 @@
 """New segment policy; historical coverage tests stay frozen separately."""
 import copy,json,unittest
 from unittest.mock import patch
-import test_coverage_director as old
+from tests.legacy import test_coverage_director as old
 import coverage_director as d
 import storyboard as b
-import test_queue
+from tests.backend import test_queue
 
 # Legacy scheme tests: pin the pre-h3-structured-v2 default so they keep exercising the old pipeline.
 import storyboard as _legacy_scheme_storyboard

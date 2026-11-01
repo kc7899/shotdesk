@@ -1,7 +1,7 @@
 """Public packages exclude private/upstream originals and cannot bypass integrity/readiness checks."""
 import importlib.util,json,tempfile,unittest,hashlib
 from pathlib import Path
-spec=importlib.util.spec_from_file_location('release',Path(__file__).parent/'scripts/export_release.py');release=importlib.util.module_from_spec(spec);spec.loader.exec_module(release)
+spec=importlib.util.spec_from_file_location('release',Path(__file__).resolve().parents[2]/'scripts/export_release.py');release=importlib.util.module_from_spec(spec);spec.loader.exec_module(release)
 class ReleasePackage(unittest.TestCase):
  def test_public_package_integrity_license_and_acceptance_gate(self):
   with tempfile.TemporaryDirectory() as t:
@@ -16,7 +16,7 @@ class ReleasePackage(unittest.TestCase):
    original=release.ROOT;release.ROOT=root
    try:
     second=Path(t)/'second';release.export(second)
-    for script in second.glob('*.py'):compile(script.read_text(),str(script),'exec')
+    for script in second.rglob('*.py'):compile(script.read_text(),str(script),'exec')
    finally:release.ROOT=original
    (root/'static/app.js').write_text('tampered')
    self.assertTrue(any('integrity' in b for b in release.check_ready(root)['blockers']))
