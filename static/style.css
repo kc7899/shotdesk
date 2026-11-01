@@ -348,3 +348,5 @@ button.delete-project{color:#b97878;background:transparent;border-color:transpar
 .cloud-field-help{display:block;line-height:1.6;margin-top:5px;font-weight:400;overflow-wrap:anywhere}.cloud-field-help a{color:var(--primary,#6b5bea);text-decoration:underline;text-underline-offset:2px}.cloud-field-help code{font-size:inherit;white-space:normal;word-break:break-word}
 
 .ark-asset-status{display:flex;align-items:center;flex-wrap:wrap;gap:6px 9px;padding:8px 0;font-size:12px}.ark-asset-status button{padding:4px 8px}.ark-asset-status small{overflow-wrap:anywhere}.ark-asset-error{flex-basis:100%;color:#b94c54}.ark-asset-status select{max-width:220px}
+
+.ark-credentials-settings{margin-top:14px;padding:14px;border:1px solid #e4e5ee;border-radius:10px;background:#f8f9fd}.ark-credentials-settings h4{margin:0 0 8px;font-size:14px}.ark-credentials-settings[hidden]{display:none}

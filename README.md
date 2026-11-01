@@ -85,7 +85,7 @@ Cloud video providers are configured under **Service connections → Cloud video
 
 角色身份图和每个造型卡可点击“同步到 Seedance”，在工作台查看上传、审核中、可使用或拒绝原因。审核通过后，火山资产参考生成自动使用对应的 `asset://` ID；本地和 H3 仍使用图片。切换图片会提示需更新，不沿用旧图的审核结果。刷新审核只查询现有ID，不重复上传。
 
-首次需在[方舟私域虚拟人像库](https://docs.volcengine.com/docs/ark/private-virtual-avatar-library-guide-preview?lang=zh)签署虚拟素材授权并开通所需权益；在“服务连接 → 火山方舟 → 虚拟角色素材库”配置 [AK/SK](https://console.volcengine.com/iam/keymanage)、项目名称与素材公网HTTPS地址。AK/SK 与视频 API Key 不同，素材和视频调用必须属于相同火山项目。官方素材库只接受可访问URL，本功能复用6小时单文件签名链接，不自动开放网络。普通视频服务不需要这些额外设置。
+首次需在[方舟私域虚拟人像库](https://docs.volcengine.com/docs/ark/private-virtual-avatar-library-guide-preview?lang=zh)签署虚拟素材授权并开通所需权益；在“服务连接 → 云端视频 → Seedance · 火山方舟卡片 → 虚拟角色素材库”配置 [AK/SK](https://console.volcengine.com/iam/keymanage)、项目名称与素材公网HTTPS地址。AK/SK 与视频 API Key 不同，素材和视频调用必须属于相同火山项目。官方素材库只接受可访问URL，本功能复用6小时单文件签名链接，不自动开放网络。普通视频服务不需要这些额外设置。
 
 当前仅接入官方 AIGC 虚拟人像素材库，不做真人认证，不向中转站发送AK/SK。每个角色共用一个素材组，身份与造型各自审核。审核拒绝不自动反复上传，网络中断导致提交结果不明时保留记录并要求核对；停止同步仅停止本地等待，不删除已上传素材。审核超过10分钟时保存Processing状态，可稍后刷新。
 

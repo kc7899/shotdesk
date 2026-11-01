@@ -73,3 +73,5 @@
 读取 `GET /api/projects/<pid>/ark-assets` 获取独立同步记录。提交 `POST /api/projects/<pid>/sync-ark-asset {model:"cloud-服务id",resource_id:"角色id或造型id"}`，进入统一asset_sync队列。后台自动CreateAssetGroup（同角色共用）、CreateAsset和GetAsset；相同图片已有asset_id时仅查询，不重复上传。Active才可用，Processing仍在审核，Failed展示原因；Unknown表示上次提交结果不明，必须先核对方舟记录，不重复创建。任务completed仍需检查result.status，Processing不能当作审核通过。
 
 同步记录独立保存项目ark-assets.json，不能在/save里伪造审核状态。造型与身份分别绑定当前图片和SHA256；视频提交自动选当前造型的Active素材ID，图片切换或内容变化后拒绝沿用旧ID。没有同步记录的参考图保留原图传递行为，不宣称已获认可。云端项目必须匹配；不影响本地/H3图片路径。只有模拟接口和签名验证通过，不能宣称真实账号审核已通过。
+
+素材库凭据的界面路径为：服务连接 → 云端视频 → 对应“Seedance · 火山方舟”服务卡片 → 虚拟角色素材库 · AK/SK 配置。该区域直接展开，位于服务基础字段下方，不是独立的顶层菜单。
