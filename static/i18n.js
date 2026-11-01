@@ -5,6 +5,26 @@ const storageKey='shotdesk.uiLanguage';
 let locale='zh';try{locale=localStorage.getItem(storageKey)==='en'?'en':'zh'}catch{}
 const translations={};
 const entries=`
+已绑定 · 未向方舟验证|Bound · not verified with Ark
+选择 Seedance 素材|Select Seedance asset
+自动同步（AK/SK）|Auto sync (AK/SK)
+Seedance 素材|Seedance assets
+在方舟公共虚拟人像库或私有素材库复制素材 ID，登记后选择绑定。手动登记不等于平台已验证审核状态。|Copy an asset ID from the Ark public or private avatar library, register it, then bind it. Manual registration does not verify approval.
+打开方舟控制台 ↗|Open Ark console ↗
+选择并绑定|Select and bind
+移除登记|Remove entry
+尚未登记素材|No registered assets
+登记素材 ID|Register asset ID
+素材名称|Asset name
+素材 ID 或 URI|Asset ID or URI
+上传对应缩略图|Upload matching thumbnail
+使用当前图片作为缩略图|Use current image as thumbnail
+未设置缩略图|No thumbnail
+缩略图应与该 ID 对应；绑定前请为当前角色或造型上传同一素材图片。|The thumbnail must match the ID. Upload the same image to the current identity or look before binding.
+登记到列表|Add to list
+解除当前绑定|Unbind current asset
+已上传缩略图|Thumbnail uploaded
+
 填写你自己的 Shotdesk 公网 HTTPS 地址，不是模型服务地址。参考视频或角色入库需要；普通图片、音频直接生成可留空。|Enter your own public HTTPS Shotdesk URL, not the model API URL. Required for video references or character library sync; optional for direct image/audio generation.
 
 虚拟角色素材库 · AK/SK 配置|Virtual character library · AK/SK settings

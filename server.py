@@ -1521,7 +1521,7 @@ class Handler(BaseHTTPRequestHandler):
             if cancel:return self.reply(Q.cancel(*cancel.groups()))
             resume=re.fullmatch('/api/projects/([a-f0-9]{32})/jobs/([a-f0-9]{32})/resume',path)
             if resume:return self.reply(resume_speech(*resume.groups()))
-            match=re.fullmatch('/api/projects/([a-f0-9]{32})/(save|delete|sync-ark-asset|generate|generate-batch|reviews|plan|storyboard|storyboard-check|extract-assets|apply-extracted-assets|clear-assets|clear-shots|upload|compose|read-media|consume-media|shot-completion|inspect-media|upload-media|optimize-look|optimize-prop|preview-prompt)',path)
+            match=re.fullmatch('/api/projects/([a-f0-9]{32})/(save|delete|manage-ark-asset|sync-ark-asset|generate|generate-batch|reviews|plan|storyboard|storyboard-check|extract-assets|apply-extracted-assets|clear-assets|clear-shots|upload|compose|read-media|consume-media|shot-completion|inspect-media|upload-media|optimize-look|optimize-prop|preview-prompt)',path)
             if not match: return self.reply({'error':'接口不存在'},404)
             pid,action=match.groups()
             if action=='preview-prompt':return self.reply(preview_shot_prompt(pid,body))
@@ -1533,6 +1533,7 @@ class Handler(BaseHTTPRequestHandler):
             if action=='save':
                 allowed={'name','content','script','ratio','image_model','video_model','video_mode','video_resolution','llm_model','prompt_language','assets','shots'}
                 update(pid,lambda p:merge_save(p,body)); return self.reply(load(pid))
+            if action=='manage-ark-asset':return self.reply(ark_assets.manage(AppContext(),pid,body))
             if action=='sync-ark-asset':return self.reply(ark_assets.launch(AppContext(),pid,body))
             if action=='generate-batch':return self.reply(launch_batch(pid,body.get('kind'),body.get('mode','all'),body.get('required_only',False)))
             if action=='reviews':return self.reply(REVIEWS.record(pid,body))

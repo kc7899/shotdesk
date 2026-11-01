@@ -72,4 +72,35 @@ class ArkAssets(unittest.TestCase):
   self.setup_ark()
   with patch.object(aa,'call',side_effect=ValueError('uncertain')) as call:
    self.assertEqual(self.sync()['status'],'failed');self.assertEqual(self.sync()['status'],'failed');self.assertEqual(call.call_count,1)
+
+ def test_manual_catalog_without_credentials_and_binding(self):
+  service=self.setup_ark()
+  self.provider.update(asset_access_key='',asset_secret_key='',public_media_url='')
+  self.req('/api/settings',{'video_providers':[{**self.provider,'clear_asset_credentials':True}]})
+  base='/api/projects/'+self.pid
+  value=self.req(base+'/manage-ark-asset',{'model':'cloud-ark','operation':'register','asset_id':'asset://asset-public-test','name':'Public character','thumbnail':self.image})
+  entry=value['catalog'][0];self.assertEqual(entry['status'],'Manual');self.assertEqual(service.calls,[])
+  value=self.req(base+'/manage-ark-asset',{'model':'cloud-ark','operation':'bind','resource_id':'look','catalog_key':entry['key']})
+  self.assertEqual(value['resources']['ark:look']['status'],'Manual')
+  item={'asset_id':'a','look_id':'look','name':'Test','url':self.image}
+  self.assertEqual(aa.image_input(app.AppContext(),self.pid,self.provider,item),'asset://asset-public-test')
+  app.update(self.pid,lambda p:p.update(video_model='cloud-ark',video_mode='reference',shots=[{'id':'s','title':'Test','duration':5,'video_prompt':'The character enters.','asset_ids':['a'],'character_looks':{'a':'look'},'versions':[]}]))
+  with patch.object(self.q,'reject_duplicate'),patch.object(self.q,'enqueue',side_effect=lambda pid,j:j):submitted=app.launch(self.pid,'shot','s','video')
+  self.assertEqual(submitted['request']['image'],['asset://asset-public-test'])
+  with self.assertRaises(ValueError):aa.manage(app.AppContext(),self.pid,{'model':'cloud-ark','operation':'remove','catalog_key':entry['key']})
+  (app.project(self.pid).parent/'media/character.png').write_bytes(fx.PNG+b'changed')
+  with self.assertRaisesRegex(ValueError,'已更换'):aa.image_input(app.AppContext(),self.pid,self.provider,item)
+  self.req(base+'/manage-ark-asset',{'model':'cloud-ark','operation':'unbind','resource_id':'look'})
+  self.assertEqual(self.req(base)['assets'][0]['looks'][0]['image'],self.image)
+  self.assertEqual(service.calls,[])
+
+ def test_manual_catalog_rejects_invalid_scope_and_ids(self):
+  self.setup_ark();context=app.AppContext()
+  for ident in ('group-abc','https://example.org/x','asset://../../file',''):
+   with self.assertRaises(ValueError):aa.manage(context,self.pid,{'model':'cloud-ark','operation':'register','asset_id':ident,'name':'Bad'})
+  value=aa.manage(context,self.pid,{'model':'cloud-ark','operation':'register','asset_id':'asset-example','name':'Example'})
+  entry=value['catalog'][0]
+  state=aa.read(context,self.pid);state['catalog'][entry['key']]['asset_project']='another';app.save(aa.state_path(context,self.pid),state)
+  with self.assertRaisesRegex(ValueError,'当前服务'):aa.manage(context,self.pid,{'model':'cloud-ark','operation':'bind','resource_id':'look','catalog_key':entry['key']})
+
 if __name__=='__main__':unittest.main()

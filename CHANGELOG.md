@@ -35,3 +35,5 @@
 - Release integrity/readiness gate and sanitized acceptance record.
 - Fixed script JSON escape handling with a bounded format retry; allowed scene/prop-only storyboard projects; queued-task deletion no longer sends unnecessary interrupts.
 - Clarified the connection indicator as ComfyUI, independently of local/remote deployment.
+
+- Added a Seedance asset-ID catalogue and thumbnail picker for character identities/looks, without requiring AK/SK or a public media URL. Existing automatic sync remains available; manual IDs are explicitly unverified. Documented the official same-account original-image trust conditions.
