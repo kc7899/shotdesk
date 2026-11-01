@@ -496,6 +496,8 @@ def local_model_catalog():
 
 def model_catalog():
     value=local_model_catalog();value['videos'].extend(cloud_video.catalog(SETTINGS))
+    for item in value['videos']:
+        item.setdefault('max_references',REFERENCE_VIDEO_MODELS.get(item['id'],0))
     value['strategies']=copy.deepcopy(value['strategies'])
     for mode,spec in value['strategies'].items():
         spec['models']=list(dict.fromkeys(spec['models']+[x['id'] for x in value['videos'] if mode in x['modes']]))

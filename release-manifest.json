@@ -53,10 +53,10 @@
     "scripts/export_release.py": "92a6f05fc1f4f6c78812f4a705d1ed1226d8da8d216e8682ec43504124eb6b83",
     "scripts/shotdesk_setup.py": "7cf4311583197bfbf4ea433794e37228b36a81616ecef64055e3c9da203148f9",
     "scripts/shotdesk_smoke.py": "6bf623972ac0b7233b652bb43d4f3523e75831bae41f8203859b058bf9790b85",
-    "server.py": "3369fcbae38591c969d33c3da6c55b4921a55b438945d03e3d0deabe5dd32411",
+    "server.py": "4bdabec115cabfc6ae0cda8fbf52adf65fae052e0a4c5c23e9f97b08892451b7",
     "source_storyboard.py": "a5ab0e51fb46cd7bf5ab6e22b2e9fe05da6e2d8dd7cd6243cbc3413eeaf53ecc",
     "static/agent.html": "c182ac5e83712715b2bb8247499fcadc443779e538a47c3cbfcf1e9eeea234d9",
-    "static/app.js": "c8b1f0b5d6da74fbdc52b74840b92276e2fce0f1c9a07c29b119874c3e6a2a4a",
+    "static/app.js": "00961a367901b385f6f341335e3d38854d74406bdeb47c237645f45443e31f78",
     "static/asset-extraction.js": "9b00c9e2c44a4723a26d81eb84e2094aac7d4d1c1e4fa9465993f5b1e4c3d6d8",
     "static/connections.js": "4d2a60c920c2a603352362ca342457f02b8497cb68877e4c5770aeea2545e43e",
     "static/i18n.js": "b2c62c0b4b291cf80eb5541fe5b0e7a0b6f23b835f2d7ee9d479d42920ebfefa",
@@ -74,7 +74,7 @@
     "tests/backend/test_asset_extraction.py": "7788328084b925428a94ecac748719706eefeff349260a1f31e68eb3847aae51",
     "tests/backend/test_batch_review.py": "c46477b66070e7cf4a4b2b31f2aeba6629b218f283ce33912b8ffb098e640a68",
     "tests/backend/test_character_audio.py": "580e283e4769304b38e996a2112d8e7b00509cae2a8e7e4806e4616786bd40a0",
-    "tests/backend/test_cloud_video.py": "1a448b3d96eee259cd761692487352edf8134869861fa3253398c63acce6cdfc",
+    "tests/backend/test_cloud_video.py": "17b1a249cf0155a0a7aa2a132263a3fc506ae0a38cfbb6783b04289029ad251a",
     "tests/backend/test_completion.py": "d33646e3881636ebd74f7a2fa0d9736f3fb73aac1927f1d62e721d935ec23655",
     "tests/backend/test_contracts.py": "bf60db541ef0bd5e9c224f34b73b473d3e42d960a54771f2acc0b7ffcfe155fc",
     "tests/backend/test_h3_scene_only.py": "0d5e346d575ee89f62f1632698e0ecc8f04eef1804ceb9f10d377a58463715bc",
@@ -129,7 +129,8 @@
     "tests/support.py": "892ea73ad57e56310080374b5cd32c197b775c60eb65d8d6fc2c9410bb2ea209",
     "trash_manager.py": "8d010c470b075183d2900780d826484d6d6a10fb86a321450e1ae331b505d2cd",
     "workflow_transport.py": "8b9a7a9957700c9d083fe2ff2600268b12e76c7f83c228aa541220186f38e913",
-    "workflows/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "workflows/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/frontend/test_cloud_catalog_refresh.js": "85c507f2b79aec9c28e69f19acebfc62ff2aa954bba215614377a84ea4aa9327"
   },
   "excluded_upstream_originals": [
     "h3-official-SKILL.md",

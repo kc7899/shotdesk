@@ -54,6 +54,12 @@ class CloudVideo(unittest.TestCase):
     refs=[x['image_url']['url'] for x in payload['content'] if x['type']=='image_url'] if protocol in ('ark','minimax') else payload['image_urls' if protocol=='fal' else 'reference_images']
     self.assertNotEqual(refs[0],refs[1]);self.assertTrue(refs[0].startswith('data:image/'));self.assertIn('Scene',payload['content'][0]['text'] if 'content' in payload else payload['prompt'])
     self.assertEqual(len(self.req(base)['shots'][0]['versions']),1);self.assertNotIn('contract-only-secret',json.dumps(self.req(base+'/jobs')))
+ def test_cloud_modes_with_legacy_local_descriptors(self):
+  self.cloud();provider=self.provider('ark');self.settings.update({'video_providers':[provider]})
+  legacy={'images':[],'videos':[{'id':'legacy-local','modes':['reference'],'supports_resolution':False}], 'strategies':{'reference':{'models':['legacy-local'],'inputs':['assets']},'first_frame':{'models':[],'inputs':['first_frame']}},'unmapped_videos':[]}
+  with patch.object(app,'local_model_catalog',return_value=legacy):
+   modes=self.req('/api/video-modes')
+  self.assertIn('cloud-test-ark',modes['reference']);self.assertIn('legacy-local',modes['reference']);self.assertIn('cloud-test-ark',modes['first_frame'])
  def test_restart_reuses_remote_task_without_resubmitting(self):
   self.cloud();provider=self.provider();self.settings.update({'video_providers':[provider]});p=self.req('/api/projects',{'name':'Resume'});pid=p['id'];j={'id':'a'*32,'kind':'video','request':{'model':'cloud-test-minimax'},'cloud_task_id':'known-task','cloud_provider':{k:provider[k] for k in ('id','protocol','url','model')},'transport':'cloud','status':'running'};self.q.events[j['id']]=threading.Event()
   with patch.object(c,'submit') as submit,patch.object(c,'poll',return_value=('completed',self.cloud_url+'/artifact.mp4')),patch.object(app,'finish_job'),patch.object(self.q,'done') as done:
