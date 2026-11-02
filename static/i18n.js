@@ -5,6 +5,24 @@ const storageKey='shotdesk.uiLanguage';
 let locale='zh';try{locale=localStorage.getItem(storageKey)==='en'?'en':'zh'}catch{}
 const translations={};
 const entries=`
+一键准备全部镜头|Prepare all shots
+全部匹配资产|Match assets for all shots
+全部生成视频提示词|Write all video prompts
+更多执行选项|More execution options
+覆盖已有匹配和提示词|Overwrite existing matches and prompts
+准备并生成视频|Prepare and generate videos
+默认保留手动结果；已完成且未变化的步骤跳过。需要确认的镜头不会自动出视频。|Manual results are preserved by default. Unchanged completed steps are skipped. Shots requiring review are not generated.
+匹配资产|Match assets
+生成视频提示词|Write video prompt
+以此栏内容为依据；覆盖已有结果请勾选左侧执行选项。|Uses this field as its source. Enable overwrite in the left panel to replace existing results.
+镜头准备|Shot preparation
+镜头执行结果|Shot results
+镜头内容已修改|Shot content changed
+请等待当前文字任务结束|Wait for the current text task to finish
+覆盖所选镜头已有的资产关联或视频提示词？剧情、台词和已有媒体保留。|Overwrite selected shots’ asset matches or video prompts? Story content, dialogue and existing media are retained.
+将连续准备镜头并生成视频；首帧方案缺图时会先生成首帧，云端可能产生费用。已有视频跳过，有待确认事项的镜头不生成。|Prepare shots and generate videos. Missing first frames are generated first when needed. Cloud calls may incur charges. Existing videos are skipped; shots requiring review are not generated.
+镜头准备任务已加入队列|Shot preparation added to queue
+
 已绑定 · 未向方舟验证|Bound · not verified with Ark
 选择 Seedance 素材|Select Seedance asset
 自动同步（AK/SK）|Auto sync (AK/SK)

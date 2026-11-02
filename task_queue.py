@@ -2,6 +2,7 @@
 import copy, http.client, importlib.util, json, os, socket, statistics, subprocess, threading, time, urllib.parse
 from pathlib import Path
 import cloud_video
+import shot_preparation
 
 ACTIVE={'queued','running','cancelling'}
 TERMINAL={'completed','failed','cancelled'}
@@ -75,7 +76,9 @@ class TaskQueue:
                 elif j['kind']=='audio':self.app.run_speech(pid,j)
                 elif j['kind']=='text':
                     self.start(pid,j)
-                    if j.get('operation') in ('optimize_look','optimize_prop'):
+                    if j.get('operation')=='prepare_shots':
+                        result=shot_preparation.run(self.app,pid,j);self.done(pid,j,result=result)
+                    elif j.get('operation') in ('optimize_look','optimize_prop'):
                         result=self.app.optimize_look(j);self.done(pid,j,result=result)
                     elif j.get('operation')=='extract_assets':
                         result=self.app.extract_assets(j);self.done(pid,j,result=result)

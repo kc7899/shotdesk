@@ -9,6 +9,7 @@ from review_contract import ReviewContract
 from trash_manager import TrashManager
 import storyboard
 import cloud_video
+import shot_preparation
 import ark_assets
 from concurrent.futures import ThreadPoolExecutor
 ROOT=Path(__file__).resolve().parent
@@ -345,7 +346,9 @@ def preview_shot_prompt(pid,body):
     cloud_refs=bool(cloud and cloud['protocol']=='ark' and mode=='reference')
     return {'kind':kind,'original_prompt':shot.get(kind+'_prompt',''),'compiled_prompt':compiled,'reference_bindings':bindings,'image_inputs':inputs,'asset_ids':shot.get('asset_ids',[]),'character_looks':shot.get('character_looks',{}),'cloud_audio_reference':resolve_audio(p,shot.get('audio_source'),shot.get('reference_audio')) if cloud_refs and shot.get('cloud_use_audio') else None,'cloud_video_reference':shot.get('reference_video') if cloud_refs and shot.get('cloud_use_video') else None,'notice':'此预览不提交任务；身份绑定不保证模型正确说台词'}
 
-def validate_resources(p):
+def validate_resources(p,previous=None):
+    old_assets={a['id'] for a in (previous or {}).get('assets',[])}
+    old_shots={s['id']:s for s in (previous or {}).get('shots',[])}
     assets={a['id']:a for a in p['assets']}
     for asset in p['assets']:
         for voice in asset.get('voices',[]):
@@ -357,7 +360,9 @@ def validate_resources(p):
         if asset.get('type')=='角色' and asset.get('default_look_id') and not any(x['id']==asset['default_look_id'] for x in asset.get('looks',[])):raise ValueError('人物默认造型不存在')
     for shot in p['shots']:
         for aid in shot.get('asset_ids',[]):
-            if aid not in assets:raise ValueError('镜头引用的资产不存在，删除前先解除引用')
+            if aid not in assets:
+                if aid in old_shots.get(shot['id'],{}).get('asset_ids',[]) and aid not in old_assets:continue
+                raise ValueError('镜头“'+str(shot.get('title',shot['id']))+'”引用的资产不存在，请重新匹配资产')
             if assets[aid].get('type')=='音频':raise ValueError('图片asset_ids不能引用音频资产')
         for aid,lid in shot.get('character_looks',{}).items():
             if lid and (aid not in assets or not any(x['id']==lid for x in assets[aid].get('looks',[]))):raise ValueError('镜头引用的角色造型不存在，删除前先解除引用')
@@ -1124,6 +1129,7 @@ def mark_prompt_staleness(p,previous_targets):
         else:shot.pop('prompt_stale',None)
 
 def merge_save(p, body):
+    previous_resources=copy.deepcopy(p)
     epochs=body.get('reset_epochs',{})
     if not isinstance(epochs,dict):raise ValueError('reset_epochs格式不正确')
     for group in ('assets','shots'):
@@ -1143,6 +1149,7 @@ def merge_save(p, body):
                 item['versions']=[v for v in item.get('versions',[]) if v.get('id') not in retired_ids and not (v.get('kind') in ('image','video') and v.get('url') in retired.get(v['kind']+'_urls',[]))]
                 for media_kind in ('image','video'):
                     if item.get(media_kind) and item[media_kind] in retired.get(media_kind+'_urls',[]):item[media_kind]=old.get(media_kind)
+                if old.get('preparation'):item['preparation']=copy.deepcopy(old['preparation'])
                 if 'prompt_mentions' not in item and old.get('prompt_mentions'):item['prompt_mentions']=copy.deepcopy(old['prompt_mentions'])
                 for managed in SHOT_MANAGED_KEYS:
                     if managed not in item and managed in old:item[managed]=copy.deepcopy(old[managed])
@@ -1175,7 +1182,7 @@ def merge_save(p, body):
     mark_prompt_staleness(p,previous_targets)
     normalize_characters(p)
     for shot in p['shots']:sync_shot_mentions(p,shot)
-    validate_resources(p)
+    validate_resources(p,previous_resources)
     if p.get('id'):
         remaining={item['id'] for _,item in resource_targets(p)}
         if any(j.get('target_id') not in remaining and j.get('target') in ('asset','look','shot') and j.get('status') in ('queued','running','cancelling') for j in Q.list(p['id'])):raise ValueError('资源有未结束任务，请先停止并等待结束后再删除')
@@ -1521,7 +1528,7 @@ class Handler(BaseHTTPRequestHandler):
             if cancel:return self.reply(Q.cancel(*cancel.groups()))
             resume=re.fullmatch('/api/projects/([a-f0-9]{32})/jobs/([a-f0-9]{32})/resume',path)
             if resume:return self.reply(resume_speech(*resume.groups()))
-            match=re.fullmatch('/api/projects/([a-f0-9]{32})/(save|delete|manage-ark-asset|sync-ark-asset|generate|generate-batch|reviews|plan|storyboard|storyboard-check|extract-assets|apply-extracted-assets|clear-assets|clear-shots|upload|compose|read-media|consume-media|shot-completion|inspect-media|upload-media|optimize-look|optimize-prop|preview-prompt)',path)
+            match=re.fullmatch('/api/projects/([a-f0-9]{32})/(save|delete|prepare-shots|manage-ark-asset|sync-ark-asset|generate|generate-batch|reviews|plan|storyboard|storyboard-check|extract-assets|apply-extracted-assets|clear-assets|clear-shots|upload|compose|read-media|consume-media|shot-completion|inspect-media|upload-media|optimize-look|optimize-prop|preview-prompt)',path)
             if not match: return self.reply({'error':'接口不存在'},404)
             pid,action=match.groups()
             if action=='preview-prompt':return self.reply(preview_shot_prompt(pid,body))
@@ -1533,6 +1540,7 @@ class Handler(BaseHTTPRequestHandler):
             if action=='save':
                 allowed={'name','content','script','ratio','image_model','video_model','video_mode','video_resolution','llm_model','prompt_language','assets','shots'}
                 update(pid,lambda p:merge_save(p,body)); return self.reply(load(pid))
+            if action=='prepare-shots':return self.reply(shot_preparation.launch(AppContext(),pid,body))
             if action=='manage-ark-asset':return self.reply(ark_assets.manage(AppContext(),pid,body))
             if action=='sync-ark-asset':return self.reply(ark_assets.launch(AppContext(),pid,body))
             if action=='generate-batch':return self.reply(launch_batch(pid,body.get('kind'),body.get('mode','all'),body.get('required_only',False)))
