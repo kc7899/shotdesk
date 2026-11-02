@@ -105,3 +105,9 @@ scope=missing默认保留已有手动关联与提示词，跳过输入/输出未
 `GET /api/llm-skills` 提供阶段目录与默认方案。私有 `GET/POST /api/settings` 的 `llm_skills` 列表配置补充项，每项 `{id,name,content,stages,enabled}`；stages可选script/assets/matching/storyboard/prompts/optimization。ID唯一，正文单项不超过12000字、合计不超过24000字、最多12项。整体更新列表须保留其他项；空列表清除所有补充配置。UI路径：服务连接 → LLM Skill方案 → 配置本地补充Skill。可粘贴或导入.md/.txt正文，必须选择适用环节并保存。不会扫描OpenCode，不执行脚本，不抓取链接，不递归读取references；需要的关联内容必须整理到正文，不能把单文件导入说成完整安装了技能包。导入只更新本机私有设置，不发布到GitHub、不随项目导出；用户不得在正文粘贴密钥。
 
 每个任务首次调用LLM时固定本次模式与补充配置；后续步骤按环节使用同一份配置。jobs中的 `llm_skill_trace` 仅包含实际选择的名称、阶段、来源、正文SHA256和delivery，不包含补充正文。task-native表示使用原任务已固定的完整规范，adapter为新任务的精简适配规则，reference为用户补充。私有任务文件保存配置快照用于核查，公开jobs接口过滤`_llm_skill_config`。任务队列可展开“已加载规范”查看。修改配置不会自动重写已有提示词；要应用新规范，明确选择覆盖并重新执行相应任务。平台内部LLM自动加载不代表外部Agent会自动加载；外部Agent须读取本说明、目录和当前任务规范自行遵循。
+
+## 本机自定义Skill目录刷新
+
+服务连接 → LLM Skill方案 → 配置本地补充Skill → “刷新列表”。目录为部署数据目录下的 `custom-skills/`（默认项目 `data/custom-skills/`；默认Docker内 `/app/data/custom-skills/`，宿主机为所挂载数据目录对应的custom-skills）。它属于已忽略的私有data目录，不进入GitHub和项目导出。可放平铺.md/.txt，或 `<自定义名称>/SKILL.md`。不递归扫描references或脚本，不读取符号链接和目录外路径。
+
+`GET /api/llm-skills/files` 读取目录，返回directory/files/warnings，列表不包含正文；`POST /api/llm-skills/import {file:"相对文件名或子目录/SKILL.md"}` 读取单项正文及稳定ID，不直接写配置。界面点“导入或更新”后选择适用环节，保存服务连接才生效。更新已有同路径条目时保留适用环节和启用状态；文件改动、删除或刷新本身都不会静默替换/移除已保存配置。实际执行继续使用settings中的固定文本快照，运行中任务不受目录变化影响。新导入项默认适用环节为空，须明确选择；不会把目录中的所有文件全部自动加载。仅支持UTF-8正文，仍服从单项12000字、合计24000字上限。

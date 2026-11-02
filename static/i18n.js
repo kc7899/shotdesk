@@ -5,6 +5,15 @@ const storageKey='shotdesk.uiLanguage';
 let locale='zh';try{locale=localStorage.getItem(storageKey)==='en'?'en':'zh'}catch{}
 const translations={};
 const entries=`
+刷新列表|Refresh list
+读取 data/custom-skills/ 中的 .md、.txt 或子目录 SKILL.md。|Read .md, .txt or subfolder SKILL.md files from data/custom-skills/.
+正在读取Skill目录…|Reading skill directory…
+服务内目录：|Directory inside service:
+导入或更新|Import or update
+目录中还没有Skill文件|No skill files in this directory yet
+用目录中的正文更新此Skill？适用环节和启用状态保留，保存后生效。|Update this skill from the local file? Stages and enabled state are retained. Save to apply.
+已读取正文，请选择适用环节并保存服务连接。|Text loaded. Choose stages and save service connections.
+
 LLM Skill 方案|LLM skill profile
 内置编剧、资产、分镜规范默认按任务加载，不会把全部规范塞进每次请求。|Built-in writing, asset and storyboard guidance loads by task, not all at once.
 配置本地补充 Skill|Configure additional local skills

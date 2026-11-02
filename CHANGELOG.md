@@ -45,3 +45,5 @@
 - Added task-scoped LLM skill profiles, built-in-only project mode, optional local text imports with stage selection and size limits, frozen per-job configuration and content-free skill traces in the queue. No automatic OpenCode import or publication of private skill text.
 
 - Fixed shot-description action buttons creating an unintended grid row and overlapping linked assets; moved shot reorder/delete controls out of the asset area. Rounded only the displayed total duration to remove floating-point artifacts.
+
+- Added a private data/custom-skills directory and Refresh list UI, supporting flat Markdown/text files and subfolder SKILL.md. Explicit import/update preserves stage choices; saving is required to apply, with no automatic execution or publication.

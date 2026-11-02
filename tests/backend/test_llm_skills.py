@@ -42,3 +42,22 @@ class LLMSkills(unittest.TestCase):
   self.settings.update({'llm_skills':[self.custom]});self.assertEqual(self.settings.read()['llm_skills'][0],self.custom);self.assertEqual(self.settings.path.stat().st_mode&0o777,0o600)
  def test_unknown_operations_unchanged(self):
   j={'operation':'unknown'};self.assertIs(skills.apply(self.api,self.body,j),self.body);self.assertNotIn('llm_skill_trace',j)
+
+class LocalSkillDirectory(unittest.TestCase):
+ def setUp(self):
+  self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.api=SimpleNamespace(DATA=Path(self.tmp.name));self.root=skills.custom_directory(self.api)
+ def test_list_flat_files_and_skill_packages_without_loading_references(self):
+  (self.root/'camera.md').write_text('Camera rules',encoding='utf-8');(self.root/'person').mkdir();(self.root/'person/SKILL.md').write_text('Identity rules',encoding='utf-8');(self.root/'person/reference.md').write_text('Not auto-loaded');(self.root/'script.py').write_text('never execute')
+  value=skills.local_files(self.api);self.assertEqual({x['file'] for x in value['files']},{'camera.md','person/SKILL.md'});self.assertTrue(all('content' not in x for x in value['files']))
+  row=skills.read_local(self.api,'person/SKILL.md');self.assertEqual(row['content'],'Identity rules');self.assertEqual(row['stages'],[])
+ def test_refresh_reads_changed_contents_and_keeps_stable_identity(self):
+  f=self.root/'camera.txt';f.write_text('Old rules');first=skills.read_local(self.api,'camera.txt');f.write_text('New rules');second=skills.read_local(self.api,'camera.txt')
+  self.assertEqual(first['id'],second['id']);self.assertNotEqual(first['sha256'],second['sha256']);self.assertEqual(second['content'],'New rules')
+ def test_rejects_traversal_symlinks_and_unsupported_paths(self):
+  outside=Path(self.tmp.name)/'private.txt';outside.write_text('private');(self.root/'linked.md').symlink_to(outside);(self.root/'linked-directory').symlink_to(Path(self.tmp.name),target_is_directory=True)
+  for relative in ('../private.txt',str(outside),'linked.md','linked-directory/SKILL.md','x/y/SKILL.md','script.py'):
+   with self.subTest(relative=relative),self.assertRaises(ValueError):skills.read_local(self.api,relative)
+  self.assertEqual(skills.local_files(self.api)['files'],[])
+ def test_bad_file_does_not_hide_good_files(self):
+  (self.root/'good.md').write_text('Good');(self.root/'large.md').write_text('x'*12001);(self.root/'invalid.md').write_bytes(b'\xff\xfe')
+  value=skills.local_files(self.api);self.assertEqual([x['file'] for x in value['files']],['good.md']);self.assertEqual(len(value['warnings']),2)

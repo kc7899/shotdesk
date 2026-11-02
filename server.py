@@ -1445,6 +1445,7 @@ class Handler(BaseHTTPRequestHandler):
             if asset_state:return self.reply(ark_assets.view(AppContext(),asset_state[1]))
             if path=='/api/settings':return self.reply(service_settings())
             if path=='/api/llm-skills':return self.reply(llm_skills.catalogue())
+            if path=='/api/llm-skills/files':return self.reply(llm_skills.local_files(AppContext()))
             if path=='/api/workflows':return self.reply({'adapter':service_settings()['workflow_adapter'],**model_catalog()})
             if path=='/api/asset-prompt-presets':return self.reply(ASSET_PROMPT_PRESETS)
             if path=='/api/asset-schema':return self.reply({'types':['角色','场景','道具','音频'],'character_fields':['profile','image_ratio','generation_requirements','image','body_reference','looks','default_look_id','voice_asset_id','voices','default_voice_id'],'prompt_presets':'/api/asset-prompt-presets','prompt_rule':'人物/造型图片提交 prompt + 两个换行 + generation_requirements；缺省或空要求不附加，不默认补回','voice_fields':['id','name','asset_id'],'look_fields':['id','name','prompt','image_ratio','generation_requirements','image','garment_reference','versions'],'audio_fields':['audio','audio_duration','audio_usage','versions'],'shot_fields':['asset_ids','character_looks','speaker_id','voice_id','dialogue','speech_emotion','audio_source'],'audio_source':'null或{type:asset,asset_id}或{type:upload,url,version_id}','speech':'POST generate {target:shot,id:实际镜头ID,kind:audio}','limits':{'speech_text':300,'speech_voice_bytes':15000000,'audio_upload_mb':48},'native_sound_notice':'模型自行生成声音，不引用角色声音参考或对白音频'})
@@ -1501,6 +1502,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not SETTINGS.allow_login(self.client_address[0]):return self.reply({'error':'尝试过于频繁，请稍后再试'},429)
                 if not SETTINGS.password_ok(body.get('password','')):return self.reply({'error':'访问密码不正确'},401)
                 raw=b'{"ok":true}';self.send_response(200);self.send_header('Set-Cookie','shotdesk_session='+SETTINGS.issue_cookie()+'; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400');self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw);return
+            if path=='/api/llm-skills/import':return self.reply(llm_skills.read_local(AppContext(),body.get('file')))
             if path=='/api/settings/test':return self.reply(test_service_settings(body))
             if path=='/api/settings':
                 with LOCK:
