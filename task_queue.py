@@ -7,6 +7,30 @@ ACTIVE={'queued','running','cancelling'}
 TERMINAL={'completed','failed','cancelled'}
 class Cancelled(Exception): pass
 
+def align_h3_encoder_inputs(graph):
+    """Keep the whole frame; align intermediate H3 images to codec spatial blocks."""
+    for ident,node in list(graph.items()):
+        if node.get('class_type')!='BlehTAEVideoEncode' or node.get('inputs',{}).get('latent_type')!='minimaxh3video':continue
+        source=node['inputs'].get('image')
+        if not isinstance(source,list) or len(source)!=2:continue
+        upstream=graph.get(str(source[0]),{})
+        fields=upstream.get('inputs',{})
+        if upstream.get('class_type')=='ImageResizeKJ' and fields.get('divisible_by')==32 and fields.get('crop')=='disabled':continue
+        key='shotdesk_h3_align_'+str(ident)
+        while key in graph:key+='_'
+        graph[key]={'class_type':'ImageResizeKJ','inputs':{'image':source,'width':0,'height':0,'upscale_method':'bilinear','keep_proportion':False,'divisible_by':32,'crop':'disabled'},'_meta':{'title':'H3 codec dimension alignment (no crop)'}}
+        node['inputs']['image']=[key,0]
+    return graph
+
+def comfy_error(history):
+    messages=history.get('status',{}).get('messages',[])
+    for entry in reversed(messages):
+        if not isinstance(entry,(list,tuple)) or len(entry)<2 or entry[0]!='execution_error' or not isinstance(entry[1],dict):continue
+        error=entry[1];node=str(error.get('node_id','?'));kind=str(error.get('node_type','?'))
+        message=str(error.get('exception_message') or error.get('exception_type') or 'Unknown execution error').strip()
+        return 'ComfyUI 执行失败：'+kind+'（节点 '+node+'）：'+message[:1500]
+    return 'ComfyUI 执行失败：服务未返回具体异常，请查看ComfyUI日志'
+
 class TaskQueue:
     def __init__(self, app):
         self.app=app;self.events={};self.connections={};self.processes={};self.media_lock=threading.Lock();self.text_lock=threading.Lock();self.export_lock=threading.Lock();self.transport=None;self.monitors=set();self.media_pending=[];self.media_dispatching=False;self.bulk_stopping=set()
@@ -113,7 +137,7 @@ class TaskQueue:
         if j.get('remote_id') and j.get('transport')!='comfy': return self.run_legacy(pid,j)
         if not j.get('prompt_id'):
             j.update(phase='preparing');self.persist(pid,j)
-            engine=self.engine();graph,output,hashes=engine.build_graph(j['request'],j['id'],j['kind']);self.check(j)
+            engine=self.engine();graph,output,hashes=engine.build_graph(j['request'],j['id'],j['kind']);align_h3_encoder_inputs(graph);self.check(j)
             self.app.save(self.app.job_path(pid,j['id']).with_suffix('.workflow.json'),graph)
             # Cancellation and submission are ordered under one lock; an accepted ID is always persisted.
             with self.app.LOCK:
@@ -126,7 +150,7 @@ class TaskQueue:
                 self.stop_comfy(j['prompt_id']);raise Cancelled()
             history=self.app.request(self.comfy+'/history/'+j['prompt_id'],timeout=15).get(j['prompt_id'])
             if history:
-                if history.get('status',{}).get('status_str')=='error':raise ValueError('ComfyUI 执行失败：'+str(history.get('status',{}).get('messages',[]))[-1500:])
+                if history.get('status',{}).get('status_str')=='error':raise ValueError(comfy_error(history))
                 values=history.get('outputs',{}).get(j['output_node'],{})
                 artifacts=[a for field in ('images','gifs','videos','audio') for a in values.get(field,[])]
                 if artifacts:

@@ -37,3 +37,5 @@
 - Clarified the connection indicator as ComfyUI, independently of local/remote deployment.
 
 - Added a Seedance asset-ID catalogue and thumbnail picker for character identities/looks, without requiring AK/SK or a public media URL. Existing automatic sync remains available; manual IDs are explicitly unverified. Documented the official same-account original-image trust conditions.
+
+- Align intermediate MiniMax H3 video frames before Bleh re-encoding without cropping; report the actual ComfyUI failure node and exception instead of tensor dumps. Local H3 templates are backed up before correction.
