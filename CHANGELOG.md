@@ -43,3 +43,5 @@
 - Added per-shot and batch asset matching/video prompts from the editable shot description, queued one-click preparation, optional first-frame/video chaining with explicit confirmation, per-shot progress/results, manual-edit preservation and partial continuation. Existing orphan references no longer block unrelated asset editing; new invalid links remain rejected.
 
 - Added task-scoped LLM skill profiles, built-in-only project mode, optional local text imports with stage selection and size limits, frozen per-job configuration and content-free skill traces in the queue. No automatic OpenCode import or publication of private skill text.
+
+- Fixed shot-description action buttons creating an unintended grid row and overlapping linked assets; moved shot reorder/delete controls out of the asset area. Rounded only the displayed total duration to remove floating-point artifacts.

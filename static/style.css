@@ -356,3 +356,26 @@ button.delete-project{color:#b97878;background:transparent;border-color:transpar
 .shot-preparation-actions{display:grid;gap:7px;padding:10px 12px;border-bottom:1px solid #e7e7ef}.shot-preparation-actions .row{display:flex;flex-wrap:wrap;gap:6px}.shot-preparation-actions .row button{flex:1;white-space:normal}.shot-preparation-actions details{font-size:12px;color:#73758a}.shot-preparation-actions details[open]{display:grid;gap:8px}.shot-preparation-actions small{display:block;line-height:1.5}.shot-preparation-actions summary{cursor:pointer}.shot-preparation-single{flex-wrap:wrap;gap:7px;margin:6px 0 12px}.shot-preparation-single small{color:#828496}
 
 .llm-skill-card{display:grid;gap:9px;padding:12px;margin:12px 0;border:1px solid #e6e6ef;border-radius:10px}.llm-skill-card .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.llm-skill-card .row>input{flex:1;min-width:140px}.llm-skill-card .row label,.llm-skill-stages label{display:flex;align-items:center;gap:4px;white-space:nowrap}.llm-skill-stages{display:flex;gap:9px;flex-wrap:wrap;font-size:12px}.llm-skill-card textarea{width:100%;min-height:100px;resize:vertical}.skill-settings>summary,.queue-skill-trace>summary{cursor:pointer}.skill-settings .row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Description and its actions form one grid item; never create an implicit asset row. */
+.shot-description-block{min-width:0}
+.shot-preparation-single>button{flex:0 0 auto;white-space:nowrap}
+.shot-preparation-single>small{flex:1 1 220px}
+@media(min-width:1000px){
+ .shots-mode .shot-info .shot-description-block{grid-column:2;grid-row:1;display:flex;flex-direction:column;gap:5px;min-height:0}
+ .shots-mode .shot-info .shot-description-block>.field{display:flex;flex-direction:column;flex:1;min-height:0;margin:0}
+ .shots-mode .shot-info .shot-description-block textarea{flex:1;min-height:42px;height:auto}
+ .shots-mode .shot-description-block .shot-preparation-single{flex:0 0 auto;align-items:center;gap:7px;margin:0}
+ .shots-mode .shot-preparation-single>button{min-height:28px;padding:3px 9px;font-size:12px}
+ .shots-mode .shot-preparation-single>small{display:none}
+ .shots-mode .shot-info .checks.asset-picker{grid-column:1/-1;grid-row:2}
+}
+@media(max-width:999px){
+ .shot-description-block .shot-preparation-single{align-items:center}
+ .shot-description-block .shot-preparation-single>small{flex-basis:100%}
+}
+@media(min-width:1000px){
+ .shots-mode .shot-info .shot-actions{top:8px;left:62px;right:auto;bottom:auto;gap:5px}
+ .shots-mode .shot-info .shot-actions button{min-height:20px;padding:2px 6px;font-size:11px;line-height:1.2}
+ .shots-mode .shot-info .checks.asset-picker{padding-bottom:0}
+}
