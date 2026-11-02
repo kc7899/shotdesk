@@ -5,7 +5,7 @@ def fingerprint(p,s,step):
     fields=('description','duration') if step=='assets' else ('description','duration','asset_ids','character_looks','video_override')
     value={k:s.get(k) for k in fields}
     value['assets']=[{k:a.get(k) for k in ('id','name','type','default_look_id','looks')} for a in p['assets']]
-    if step=='prompts':value.update({k:p.get(k) for k in ('video_model','video_mode','prompt_language')})
+    if step=='prompts':value.update({k:p.get(k) for k in ('video_model','video_mode','prompt_language','storyboard_requirements')})
     return hashlib.sha256(json.dumps(value,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
 
 def output_hash(s,step):
@@ -62,7 +62,7 @@ def prompts(api,j,p,s):
             if look is None:raise ValueError('本镜造型不属于所选人物，请先匹配资产')
             label+='·'+look['name']
         aliases.append('@'+label)
-    instruction='''你是专业视频镜头提示词编写员。只把description变为可拍摄、时序清楚的一段镜头，绝不改变剧情、说话人或台词。不要读取旧分镜计划或扩写原剧本。明确画面中的人物位置、相互朝向、景别机位、动作执行者与对象；只让一个明确的人说对应台词，其他人物自然反应，不写全员定格。使用给定aliases引用当前已关联资产，不能新增@引用。参考资产模式不重复人物长相、服装或道具外观；首帧模式明确可见人物关系。按提供duration分配动作与台词，时间不足时在warnings提示，不擅自修改时长、删台词或加快语速。语言跟随language，台词保留原语言。返回JSON {video_prompt:文字,image_prompt:单张首帧画面描述,warnings:[问题]}。video_prompt中按0–Ns时间段明确谁做什么、谁说什么；H3使用[Shot 1]起始，切镜才用[Shot 2] At MM:SS.mmm，每句台词用<d>[Chinese] 原话</d>（其他语言填实际语言），不要为了格式强行切镜。不要罗列人物外貌、不要写“原文动作”等占位词。'''
+    instruction='''你是专业视频镜头提示词编写员。只把description变为可拍摄、时序清楚的一段镜头，绝不改变剧情、说话人或台词。不要读取旧分镜计划或扩写原剧本。明确画面中的人物位置、相互朝向、景别机位、动作执行者与对象；只让一个明确的人说对应台词，其他人物自然反应，不写全员定格。使用给定aliases引用当前已关联资产，不能新增@引用。参考资产模式不重复人物长相、服装或道具外观；首帧模式明确可见人物关系。按提供duration分配动作与台词，时间不足时在warnings提示，不擅自修改时长、删台词或加快语速。语言跟随language，台词保留原语言。返回JSON {video_prompt:文字,image_prompt:单张首帧画面描述,warnings:[问题]}。video_prompt中按0–Ns时间段明确谁做什么、谁说什么；H3使用[Shot 1]起始，切镜才用[Shot 2] At MM:SS.mmm，每句台词用<d>[Chinese] 原话</d>（其他语言填实际语言），不要为了格式强行切镜。不要罗列人物外貌、不要写“原文动作”等占位词。storyboard_requirements仅作镜头调度、节奏与表现的补充参考；只应用当前镜头相关部分，不改description剧情、原台词、已选资产或时长，不能把全局要求逐镜机械重复。'''
     def validate(obj):
         text=obj.get('video_prompt');image=obj.get('image_prompt');warnings=obj.get('warnings',[])
         if not isinstance(text,str) or not text.strip() or not isinstance(image,str) or not image.strip():raise ValueError('须返回非空video_prompt和image_prompt')
@@ -77,7 +77,7 @@ def prompts(api,j,p,s):
             if quote not in text:raise ValueError('视频提示词未逐字保留本镜引用的台词')
         return {'video_prompt':'Duration: '+str(s['duration'])+'s\n'+re.sub(r'^\s*Duration:\s*[^\n]*\n?','',text).strip(),'image_prompt':image},warnings[:20]
     return ask(api,j,instruction,{'description':s['description'],'duration':s['duration'],'assets':assets,'aliases':aliases,
-        'mode':api.video_mode(s,p),'model':api.video_model(s,p),'language':p.get('prompt_language','zh')},validate)
+        'mode':api.video_mode(s,p),'model':api.video_model(s,p),'language':p.get('prompt_language','zh'),'storyboard_requirements':p.get('storyboard_requirements','')},validate)
 
 def launch(api,pid,body):
     with api.LOCK:

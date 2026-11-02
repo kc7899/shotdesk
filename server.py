@@ -1072,12 +1072,12 @@ def plan_storyboard(p,task):
     if task.get('storyboard_stage')=='prompts':return storyboard.write_existing(AppContext(),p,task)
     if task.get('storyboard_skill_text'):return storyboard.plan(AppContext(),p,task)
     assets=[{'id':a['id'],'name':a.get('name'),'type':a.get('type'),'description':a.get('prompt',''),'default_look_id':a.get('default_look_id'),'looks':[{'id':l['id'],'name':l.get('name'),'description':l.get('prompt','')} for l in a.get('looks',[])]} for a in p['assets'] if a.get('type') in ('角色','场景','道具')]
-    instruction='你是短剧分镜师。只根据已审核剧本拆分镜头，不改剧情、不改台词、不重写剧本、不生成资产。每镜包含清晰可见的动作、逐句标注说话人的台词、适合模型生成的画面与视频提示词；按动作和台词需要选正数秒数，不固定10秒。仅输出JSON：{"shots":[{"title":"镜头标题","description":"剧情动作台词","duration":6,"image_prompt":"静态画面提示词","video_prompt":"视频动作、镜头与明确说话人的台词","asset_ids":["现有资产真实id"],"character_looks":{"角色真实id":"所属造型真实id"}}]}。只关联本镜出现的角色、场景、道具，asset_ids顺序就是传图顺序；只使用给定ID，不虚构资产或造型，缺少资源时用普通文字描述。角色有具体装造时选择对应造型，没有时使用默认造型。每镜保持单一连贯动作，完整覆盖剧本，避免无谓碎切。不要输出任何媒体路径或历史版本。'
+    instruction='分镜补充要求仅用于镜头扩展、调度、节奏和反应，不改变剧本事件及原台词；与原剧情冲突时保留剧本。你是短剧分镜师。只根据已审核剧本拆分镜头，不改剧情、不改台词、不重写剧本、不生成资产。每镜包含清晰可见的动作、逐句标注说话人的台词、适合模型生成的画面与视频提示词；按动作和台词需要选正数秒数，不固定10秒。仅输出JSON：{"shots":[{"title":"镜头标题","description":"剧情动作台词","duration":6,"image_prompt":"静态画面提示词","video_prompt":"视频动作、镜头与明确说话人的台词","asset_ids":["现有资产真实id"],"character_looks":{"角色真实id":"所属造型真实id"}}]}。只关联本镜出现的角色、场景、道具，asset_ids顺序就是传图顺序；只使用给定ID，不虚构资产或造型，缺少资源时用普通文字描述。角色有具体装造时选择对应造型，没有时使用默认造型。每镜保持单一连贯动作，完整覆盖剧本，避免无谓碎切。不要输出任何媒体路径或历史版本。'
     mode=video_mode({},p)
     if mode in ('reference','video_reference'):
         instruction+='提示词使用给定引用标签@角色·造型、@场景、@道具，名称必须与引用目录完全相同，角色台词紧随说话人引用；不要自行写参考图序号。'
     else:instruction+='视频提示词使用普通人物名称，不使用@引用；首帧提示词可以使用给定@引用标签。'
-    context={'script':p['script'],'ratio':p.get('ratio'),'video_mode':mode,'assets':assets,'mention_catalog':[{k:r.get(k) for k in ('label','asset_id','look_id','type')} for r in mention_catalog(p)]}
+    context={'script':p['script'],'storyboard_requirements':p.get('storyboard_requirements',''),'ratio':p.get('ratio'),'video_mode':mode,'assets':assets,'mention_catalog':[{k:r.get(k) for k in ('label','asset_id','look_id','type')} for r in mention_catalog(p)]}
     body={'model':task['model'],'messages':[{'role':'system','content':instruction},{'role':'user','content':json.dumps(context,ensure_ascii=False)}],'temperature':0.3,'max_tokens':10000}
     response=Q.text_request(body,task)
     raw=re.sub(r'<think>.*?</think>','',response['choices'][0]['message']['content'],flags=re.S)
@@ -1135,6 +1135,7 @@ def merge_save(p, body):
     if not isinstance(epochs,dict):raise ValueError('reset_epochs格式不正确')
     for group in ('assets','shots'):
         if group in body and epochs.get(group,0)!=p.get('reset_epochs',{}).get(group,0):raise ValueError(('参考资产' if group=='assets' else '分镜')+'已清空，请刷新后再保存，避免恢复旧内容')
+    if 'storyboard_requirements' in body and (not isinstance(body['storyboard_requirements'],str) or len(body['storyboard_requirements'])>6000):raise ValueError('分镜补充要求须为不超过6000字的文字')
     if 'llm_skill_mode' in body and body['llm_skill_mode'] not in ('auto','builtin'):raise ValueError('Skill方案须为auto或builtin')
     if 'video_mode' in body:video_mode({},body)
     if 'video_resolution' in body:validate_video_resolution(body['video_resolution'])
@@ -1176,7 +1177,7 @@ def merge_save(p, body):
             for look in item.get('looks',[]):merge_nested_media(look,oldlooks.get(look['id'],{}),baseline.get(look['id'],{}))
             for key in ('body_reference','garment_reference'):
                 if item.get(key):merge_nested_media(item[key],old.get(key,{}),baseline.get(item[key]['id'],{}))
-    allowed={'name','content','script','ratio','image_model','video_model','video_mode','video_resolution','llm_model','llm_skill_mode','prompt_language','storyboard_scheme','assets','shots'}
+    allowed={'name','content','script','ratio','image_model','video_model','video_mode','video_resolution','llm_model','llm_skill_mode','prompt_language','storyboard_scheme','storyboard_requirements','assets','shots'}
     if 'prompt_language' in body and body['prompt_language'] not in ('zh','en'):raise ValueError('提示词语言须为zh或en')
     if 'storyboard_scheme' in body and body['storyboard_scheme'] not in storyboard.SCHEMES:raise ValueError('分镜方案须为：'+'、'.join(storyboard.SCHEMES))
     previous_targets=(p.get('video_model'),p.get('video_mode'))

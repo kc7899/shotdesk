@@ -5,6 +5,11 @@ const storageKey='shotdesk.uiLanguage';
 let locale='zh';try{locale=localStorage.getItem(storageKey)==='en'?'en':'zh'}catch{}
 const translations={};
 const entries=`
+分镜补充要求|Additional storyboard direction
+选填|Optional
+例如：增加打戏的时长，结合人物能力和场景，适当扩写打斗动作与攻防细节，保持剧情因果、胜负结果和原有台词不变。|Example: Extend the fight sequence and elaborate its actions and exchanges based on character abilities and the setting, while preserving causality, the outcome and original dialogue.
+用于镜头扩展、调度和节奏。新增剧情或台词，请先修改剧本。保存后用于下一次生成，不自动覆盖已有分镜。|Guides shot coverage, blocking and pacing. Edit the script first to add plot or dialogue. Applies to the next generation; existing shots are not overwritten automatically.
+
 刷新列表|Refresh list
 读取 data/custom-skills/ 中的 .md、.txt 或子目录 SKILL.md。|Read .md, .txt or subfolder SKILL.md files from data/custom-skills/.
 正在读取Skill目录…|Reading skill directory…

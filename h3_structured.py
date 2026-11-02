@@ -739,7 +739,10 @@ def build_shot(api, p, plan, row, mode, model):
 
 def ask_rows(api, task, cat, rules, payload, chunk_lines, script_lines, coverage=True, max_shots=12, label=''):
     sch = schema(cat, rules, max_shots, [x['id'] for x in chunk_lines])
-    messages = [{'role': 'system', 'content': instruction(rules)}, {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}]
+    task_instruction=instruction(rules)
+    if payload.get('storyboard_requirements'):
+        task_instruction+='\n用户的分镜补充要求见storyboard_requirements。仅在剧本和当前片段范围内，合理增加反应镜头、停顿、细节和调度；打戏可结合人物能力与场景补全攻防过程、适当增加镜头数量和合理时长，但保留原事件和胜负结果；按相关场景增加镜头表现，不把要求机械重复到每镜；保持事件因果、人物动机及原台词，不新增剧情、角色或台词，不改输出schema。要求与剧本或模型硬限制冲突时，以剧本和硬限制为准。'
+    messages = [{'role': 'system', 'content': task_instruction}, {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}]
     diag = task.setdefault('h3v2_diagnostics', [])
     errors = []
     for attempt in range(ATTEMPTS):
@@ -793,7 +796,7 @@ def plan(api, p, task):
             chunk_lines = number_lines(dialogue_lines(text, cat))
             payload = {'task': '把 script_chunk 拆成视频 shots。只处理本片段，不要提前写后面的剧情。',
                        'video_model': model, 'video_model_rules': rules, 'scene_heading': part['heading'], 'scene_meta': part['scene_meta'],
-                       'script_chunk': text, 'previous_shot': previous, 'assets': llm_catalog(cat),
+                       'script_chunk': text, 'storyboard_requirements':p.get('storyboard_requirements',''), 'previous_shot': previous, 'assets': llm_catalog(cat),
                        'dialogue_in_chunk': llm_lines(chunk_lines, cat)}
             return ask_rows(api, task, cat, rules, payload, chunk_lines, script_lines, True, 12, tag)
         skip_err = None
@@ -878,7 +881,7 @@ def write_existing(api, p, task):
                 str(x.get('speaker', '')) + '：' + str(x.get('text', '')) for x in shot.get('dialogue') or [] if isinstance(x, dict))
             lines = number_lines(dialogue_lines(text, cat))
             payload = {'task': '把这个已有镜头改写为 1 个 shot，保持剧情、台词与出场角色；放不下时缩短动作描写、合理分配 clip 时长。',
-                       'video_model': model, 'video_model_rules': rules, 'script_chunk': text, 'current_cast': current,
+                       'video_model': model, 'video_model_rules': rules, 'script_chunk': text, 'storyboard_requirements':p.get('storyboard_requirements',''), 'current_cast': current,
                        'assets': llm_catalog(cat), 'dialogue_in_chunk': llm_lines(lines, cat)}
             rows, _ = ask_rows(api, task, cat, rules, payload, lines, script_lines, True, 1, '镜头“' + str(shot.get('title', ''))[:20] + '”')
             row = rows[0]

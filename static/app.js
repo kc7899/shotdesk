@@ -97,6 +97,7 @@ $('#prepareAssets').onclick=()=>{tab='assets';render()};
 $('#plan').onclick=()=>submitProjectText('generate_script','plan',{},ui('剧本任务已加入队列，可在队列中停止'));
 }
 function bindStoryboardGeneration(){
+for(const el of document.querySelectorAll('[data-storyboard-requirements]'))el.oninput=()=>{p.storyboard_requirements=el.value;change()};
 for(const [id,stage,operation] of [['generateStoryboardPlan','planning','generate_storyboard_plan'],['generateStoryboard','all','generate_storyboard']]){
  const button=$('#'+id);if(!button)continue;
  button.onclick=async()=>{

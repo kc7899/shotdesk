@@ -47,3 +47,5 @@
 - Fixed shot-description action buttons creating an unintended grid row and overlapping linked assets; moved shot reorder/delete controls out of the asset area. Rounded only the displayed total duration to remove floating-point artifacts.
 
 - Added a private data/custom-skills directory and Refresh list UI, supporting flat Markdown/text files and subfolder SKILL.md. Explicit import/update preserves stage choices; saving is required to apply, with no automatic execution or publication.
+
+- Added persistent optional storyboard direction with a fight-choreography example, passed through chunked H3 planning and per-shot prompts. Requirements participate in checkpoint and concurrent-edit guards without rewriting the script or existing shots.
