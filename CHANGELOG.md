@@ -41,3 +41,5 @@
 - Align intermediate MiniMax H3 video frames before Bleh re-encoding without cropping; report the actual ComfyUI failure node and exception instead of tensor dumps. Local H3 templates are backed up before correction.
 
 - Added per-shot and batch asset matching/video prompts from the editable shot description, queued one-click preparation, optional first-frame/video chaining with explicit confirmation, per-shot progress/results, manual-edit preservation and partial continuation. Existing orphan references no longer block unrelated asset editing; new invalid links remain rejected.
+
+- Added task-scoped LLM skill profiles, built-in-only project mode, optional local text imports with stage selection and size limits, frozen per-job configuration and content-free skill traces in the queue. No automatic OpenCode import or publication of private skill text.

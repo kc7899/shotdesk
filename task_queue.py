@@ -3,6 +3,7 @@ import copy, http.client, importlib.util, json, os, socket, statistics, subproce
 from pathlib import Path
 import cloud_video
 import shot_preparation
+import llm_skills
 
 ACTIVE={'queued','running','cancelling'}
 TERMINAL={'completed','failed','cancelled'}
@@ -294,6 +295,7 @@ class TaskQueue:
                 with self.app.LOCK:self.monitors.discard(jid)
         threading.Thread(target=watch,daemon=True).start()
     def text_request(self,body,j):
+        body=llm_skills.apply(self.app,body,j)
         self.check(j);url=urllib.parse.urlsplit(self.app.llm_endpoint(body.get('model',self.app.TEXT_MODEL)));cls=http.client.HTTPSConnection if url.scheme=='https' else http.client.HTTPConnection;conn=cls(url.hostname,url.port,timeout=600)
         body=dict(body,stream=True);self.connections[j['id']]=conn
         try:
@@ -398,7 +400,7 @@ class TaskQueue:
         for j in self.list(pid):
             if j.get('kind')==kind and j.get('target_id')==target_id and j.get('status') in ACTIVE:raise ValueError('相同任务已在队列中')
     def public(self,pid,j):
-        keep={k:v for k,v in j.items() if k not in ('request','snapshot','reference_sha256','script_skill_text','extraction_skill_text','storyboard_skill_text','storyboard_official_text','huobao_prompt_generator_text','huobao_trace','huobao_rows','huobao_asset_prompt_draft','storyboard_draft','storyboard_prompt_diagnostics','storyboard_json_diagnostics','storyboard_planning_parts','storyboard_seed_parts','storyboard_prompt_parts','storyboard_seed_prompts','storyboard_mode_official','director_scenes','director_location_context','h3v2_diagnostics','h3v2_profiles')};keep['project_id']=pid;keep.setdefault('project_name',pid[:8]);return keep
+        keep={k:v for k,v in j.items() if k not in ('request','snapshot','_llm_skill_config','reference_sha256','script_skill_text','extraction_skill_text','storyboard_skill_text','storyboard_official_text','huobao_prompt_generator_text','huobao_trace','huobao_rows','huobao_asset_prompt_draft','storyboard_draft','storyboard_prompt_diagnostics','storyboard_json_diagnostics','storyboard_planning_parts','storyboard_seed_parts','storyboard_prompt_parts','storyboard_seed_prompts','storyboard_mode_official','director_scenes','director_location_context','h3v2_diagnostics','h3v2_profiles')};keep['project_id']=pid;keep.setdefault('project_name',pid[:8]);return keep
     def list(self,pid=None):
         with self.list_lock:return self._list(pid)
     def _list(self,pid=None):

@@ -5,6 +5,32 @@ const storageKey='shotdesk.uiLanguage';
 let locale='zh';try{locale=localStorage.getItem(storageKey)==='en'?'en':'zh'}catch{}
 const translations={};
 const entries=`
+LLM Skill 方案|LLM skill profile
+内置编剧、资产、分镜规范默认按任务加载，不会把全部规范塞进每次请求。|Built-in writing, asset and storyboard guidance loads by task, not all at once.
+配置本地补充 Skill|Configure additional local skills
+导入或粘贴规范正文，选择适用环节；不会自动读取 OpenCode、执行脚本或读取关联文件。仅保存在本机服务设置中。|Import or paste guidance and choose its stages. No automatic OpenCode access, script execution or linked-file loading. Stored only in local service settings.
+＋ 添加补充 Skill|＋ Add supplementary skill
+导入 SKILL.md|Import SKILL.md
+内置规范始终保留。补充正文合计最多24000字；引用的其他文件需自行整理进正文。保存服务连接后生效。|Built-in guidance stays enabled. Additional text is limited to 24,000 characters total. Include any necessary references in the text. Save connections to apply.
+Skill 名称|Skill name
+补充规范正文|Additional guidance
+粘贴 Skill 正文；不要包含密钥|Paste skill text; do not include credentials
+使用|Use
+编剧|Screenwriting
+提取资产|Extract assets
+分镜规划|Shot planning
+描述优化|Description optimization
+Skill 文件过大，请先精简正文|Skill file too large; shorten the text first
+单个 Skill 最多12000字|Each skill is limited to 12,000 characters
+已导入正文，请选择适用环节并保存|Text imported; choose applicable stages and save
+Skill 方案|Skill profile
+自动方案（推荐）|Automatic (recommended)
+仅内置规范|Built-in only
+补充规范在服务连接中配置|Configure additions under Service connections
+已加载规范|Loaded guidance
+内置|Built-in
+补充|Additional
+
 一键准备全部镜头|Prepare all shots
 全部匹配资产|Match assets for all shots
 全部生成视频提示词|Write all video prompts

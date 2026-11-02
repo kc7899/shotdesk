@@ -10,6 +10,7 @@ from trash_manager import TrashManager
 import storyboard
 import cloud_video
 import shot_preparation
+import llm_skills
 import ark_assets
 from concurrent.futures import ThreadPoolExecutor
 ROOT=Path(__file__).resolve().parent
@@ -40,7 +41,7 @@ apply_service_settings()
 
 def service_settings():
     cfg=SETTINGS.read()
-    return {'llm_url':TEXT.rsplit('/chat/completions',1)[0] if TEXT else '', 'llm_model':TEXT_MODEL if TEXT else '','comfy_url':Q.comfy,'speech_url':INDEXTTS,'vision_model':VISION_MODEL,'api_key_configured':bool(cfg['llm_api_key']) if 'llm_api_key' in cfg else bool(TEXT_KEY_FILE),'password_configured':SETTINGS.has_password(),'workflow_adapter':'external' if os.getenv('TRANSPORT_MODULE') else 'portable','storyboard_default':'h3-structured-v2','video_providers':cloud_video.public_profiles(cfg.get('video_providers',[]))}
+    return {'llm_url':TEXT.rsplit('/chat/completions',1)[0] if TEXT else '', 'llm_model':TEXT_MODEL if TEXT else '','comfy_url':Q.comfy,'speech_url':INDEXTTS,'vision_model':VISION_MODEL,'api_key_configured':bool(cfg['llm_api_key']) if 'llm_api_key' in cfg else bool(TEXT_KEY_FILE),'password_configured':SETTINGS.has_password(),'workflow_adapter':'external' if os.getenv('TRANSPORT_MODULE') else 'portable','storyboard_default':'h3-structured-v2','llm_skills':cfg.get('llm_skills',[]),'video_providers':cloud_video.public_profiles(cfg.get('video_providers',[]))}
 
 def test_service_settings(body):
     kind=body.get('service');cfg=SETTINGS.read()
@@ -1134,6 +1135,7 @@ def merge_save(p, body):
     if not isinstance(epochs,dict):raise ValueError('reset_epochs格式不正确')
     for group in ('assets','shots'):
         if group in body and epochs.get(group,0)!=p.get('reset_epochs',{}).get(group,0):raise ValueError(('参考资产' if group=='assets' else '分镜')+'已清空，请刷新后再保存，避免恢复旧内容')
+    if 'llm_skill_mode' in body and body['llm_skill_mode'] not in ('auto','builtin'):raise ValueError('Skill方案须为auto或builtin')
     if 'video_mode' in body:video_mode({},body)
     if 'video_resolution' in body:validate_video_resolution(body['video_resolution'])
     # Keep generation results arriving while a human is editing a prompt.
@@ -1174,7 +1176,7 @@ def merge_save(p, body):
             for look in item.get('looks',[]):merge_nested_media(look,oldlooks.get(look['id'],{}),baseline.get(look['id'],{}))
             for key in ('body_reference','garment_reference'):
                 if item.get(key):merge_nested_media(item[key],old.get(key,{}),baseline.get(item[key]['id'],{}))
-    allowed={'name','content','script','ratio','image_model','video_model','video_mode','video_resolution','llm_model','prompt_language','storyboard_scheme','assets','shots'}
+    allowed={'name','content','script','ratio','image_model','video_model','video_mode','video_resolution','llm_model','llm_skill_mode','prompt_language','storyboard_scheme','assets','shots'}
     if 'prompt_language' in body and body['prompt_language'] not in ('zh','en'):raise ValueError('提示词语言须为zh或en')
     if 'storyboard_scheme' in body and body['storyboard_scheme'] not in storyboard.SCHEMES:raise ValueError('分镜方案须为：'+'、'.join(storyboard.SCHEMES))
     previous_targets=(p.get('video_model'),p.get('video_mode'))
@@ -1442,6 +1444,7 @@ class Handler(BaseHTTPRequestHandler):
             asset_state=re.fullmatch('/api/projects/([a-f0-9]{32})/ark-assets',path)
             if asset_state:return self.reply(ark_assets.view(AppContext(),asset_state[1]))
             if path=='/api/settings':return self.reply(service_settings())
+            if path=='/api/llm-skills':return self.reply(llm_skills.catalogue())
             if path=='/api/workflows':return self.reply({'adapter':service_settings()['workflow_adapter'],**model_catalog()})
             if path=='/api/asset-prompt-presets':return self.reply(ASSET_PROMPT_PRESETS)
             if path=='/api/asset-schema':return self.reply({'types':['角色','场景','道具','音频'],'character_fields':['profile','image_ratio','generation_requirements','image','body_reference','looks','default_look_id','voice_asset_id','voices','default_voice_id'],'prompt_presets':'/api/asset-prompt-presets','prompt_rule':'人物/造型图片提交 prompt + 两个换行 + generation_requirements；缺省或空要求不附加，不默认补回','voice_fields':['id','name','asset_id'],'look_fields':['id','name','prompt','image_ratio','generation_requirements','image','garment_reference','versions'],'audio_fields':['audio','audio_duration','audio_usage','versions'],'shot_fields':['asset_ids','character_looks','speaker_id','voice_id','dialogue','speech_emotion','audio_source'],'audio_source':'null或{type:asset,asset_id}或{type:upload,url,version_id}','speech':'POST generate {target:shot,id:实际镜头ID,kind:audio}','limits':{'speech_text':300,'speech_voice_bytes':15000000,'audio_upload_mb':48},'native_sound_notice':'模型自行生成声音，不引用角色声音参考或对白音频'})
