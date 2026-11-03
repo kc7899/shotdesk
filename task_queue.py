@@ -4,6 +4,7 @@ from pathlib import Path
 import cloud_video
 import shot_preparation
 import llm_skills
+import segment_timing
 
 ACTIVE={'queued','running','cancelling'}
 TERMINAL={'completed','failed','cancelled'}
@@ -94,7 +95,7 @@ class TaskQueue:
                                     raise ValueError('故事或剧本已被修改，本次生成未覆盖；生成正文保留在任务 result.script 中')
                             elif j.get('operation') in ('generate_storyboard','generate_storyboard_plan','generate_video_prompts'):
                                 result={'shots':result['shots']}
-                                if any(current.get(key)!=j['snapshot'].get(key) for key in ('script','assets','shots','video_mode','video_model','ratio','prompt_language','storyboard_requirements','reset_epochs')) or self.storyboard_media_active(pid):
+                                if any(current.get(key)!=j['snapshot'].get(key) for key in ('script','assets','shots','video_mode','video_model','ratio','prompt_language','storyboard_requirements','segment_timings','reset_epochs')) or self.storyboard_media_active(pid):
                                     j['result']=result
                                     raise ValueError('剧本、资产、分镜或生成设置已变更，或镜头任务正在运行；本次未覆盖，分镜保留在任务 result.shots 中')
                             elif current['shots'] or current['assets'] or current['content']!=j['snapshot']['content']: raise ValueError('项目内容或分镜已变更，本次结果未覆盖现有制作内容')
@@ -359,7 +360,7 @@ class TaskQueue:
             if skill.get('performance_format') and job.get('storyboard_skill',{}).get('performance_format')!=skill['performance_format']:continue
             if skill.get('prompt_language') and job.get('storyboard_skill',{}).get('prompt_language')!=skill['prompt_language']:continue
             snapshot=job.get('snapshot',{})
-            if any(snapshot.get(k)!=p.get(k) for k in ('script','assets','shots','ratio','video_mode','video_model','llm_model','prompt_language','storyboard_requirements','reset_epochs')):continue
+            if any(snapshot.get(k)!=p.get(k) for k in ('script','assets','shots','ratio','video_mode','video_model','llm_model','prompt_language','storyboard_requirements','segment_timings','reset_epochs')):continue
             candidates.append(job)
         if not candidates:return {}
         job=max(candidates,key=lambda j:j.get('created',0))
@@ -369,6 +370,7 @@ class TaskQueue:
         with self.app.LOCK:
             p=self.app.load(pid)
             if not p.get('script','').strip():raise ValueError('请先生成并审核剧本，再生成分镜')
+            segment_timing.resolved(p,True)
             if stage not in ('all','planning','prompts'):raise ValueError('stage须为all/planning/prompts')
             if scope not in ('missing','all'):raise ValueError('scope须为missing/all')
             if stage=='prompts' and not p['shots']:raise ValueError('请先生成分镜规划')

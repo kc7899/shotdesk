@@ -11,6 +11,7 @@ import storyboard
 import cloud_video
 import shot_preparation
 import llm_skills
+import segment_timing
 import ark_assets
 from concurrent.futures import ThreadPoolExecutor
 ROOT=Path(__file__).resolve().parent
@@ -1111,7 +1112,7 @@ def merge_nested_media(item,old,baseline):
     for key in ('body_reference','garment_reference'):
         if item.get(key):merge_nested_media(item[key],old.get(key,{}),{})
 
-SHOT_MANAGED_KEYS=('h3_plan','h3_rendered','prompt_video_model','prompt_video_mode','prompt_stale','storyboard_scheme')
+SHOT_MANAGED_KEYS=('timing_constraint_id','timing_constraint_quote','h3_plan','h3_rendered','prompt_video_model','prompt_video_mode','prompt_stale','storyboard_scheme')
 
 def mark_prompt_staleness(p,previous_targets):
     """Flag prompts written for another video model/mode (shown in UI and storyboard-check)."""
@@ -1135,6 +1136,7 @@ def merge_save(p, body):
     if not isinstance(epochs,dict):raise ValueError('reset_epochs格式不正确')
     for group in ('assets','shots'):
         if group in body and epochs.get(group,0)!=p.get('reset_epochs',{}).get(group,0):raise ValueError(('参考资产' if group=='assets' else '分镜')+'已清空，请刷新后再保存，避免恢复旧内容')
+    if 'segment_timings' in body:segment_timing.validate(body['segment_timings'])
     if 'storyboard_requirements' in body and (not isinstance(body['storyboard_requirements'],str) or len(body['storyboard_requirements'])>6000):raise ValueError('分镜补充要求须为不超过6000字的文字')
     if 'llm_skill_mode' in body and body['llm_skill_mode'] not in ('auto','builtin'):raise ValueError('Skill方案须为auto或builtin')
     if 'video_mode' in body:video_mode({},body)
@@ -1177,7 +1179,7 @@ def merge_save(p, body):
             for look in item.get('looks',[]):merge_nested_media(look,oldlooks.get(look['id'],{}),baseline.get(look['id'],{}))
             for key in ('body_reference','garment_reference'):
                 if item.get(key):merge_nested_media(item[key],old.get(key,{}),baseline.get(item[key]['id'],{}))
-    allowed={'name','content','script','ratio','image_model','video_model','video_mode','video_resolution','llm_model','llm_skill_mode','prompt_language','storyboard_scheme','storyboard_requirements','assets','shots'}
+    allowed={'name','content','script','ratio','image_model','video_model','video_mode','video_resolution','llm_model','llm_skill_mode','prompt_language','storyboard_scheme','storyboard_requirements','segment_timings','assets','shots'}
     if 'prompt_language' in body and body['prompt_language'] not in ('zh','en'):raise ValueError('提示词语言须为zh或en')
     if 'storyboard_scheme' in body and body['storyboard_scheme'] not in storyboard.SCHEMES:raise ValueError('分镜方案须为：'+'、'.join(storyboard.SCHEMES))
     previous_targets=(p.get('video_model'),p.get('video_mode'))

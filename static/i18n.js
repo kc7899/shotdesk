@@ -5,6 +5,32 @@ const storageKey='shotdesk.uiLanguage';
 let locale='zh';try{locale=localStorage.getItem(storageKey)==='en'?'en':'zh'}catch{}
 const translations={};
 const entries=`
+扩展段落时长 · |Expanding passage duration ·
+规划分镜 |Planning shots
+准备资产信息|Preparing asset information
+
+段落时长要求|Passage duration requirements
+设置段落时长|Set passage duration
+在上方剧本中选中文字，再设置“至少”或“大约”多少秒。未指定的段落由 AI 正常安排。|Select text in the screenplay above, then set a minimum or approximate duration. AI handles other passages normally.
+至少|At least
+大约|About
+等待生成分镜|Waiting for storyboard generation
+已规划|Planned
+已达时长|Duration met
+待调整|Needs adjustment
+原文已变化，请重新选取|Source text changed; select it again
+定位原文|Locate text
+编辑|Edit
+重新选取|Select again
+请先在剧本中选中要设置时长的文字|Select the screenplay passage first
+请选择1–6000字的剧本文字|Select 1–6,000 characters from the screenplay
+选中文字与已有时长要求重叠，请编辑原条目或另选一段|Selection overlaps an existing requirement. Edit that entry or select another passage.
+时长要求|Duration requirement
+秒数|Seconds
+约束所选段落的镜头合计时长，不是单个视频长度。“大约”允许10%或2秒的浮动。保存后用于下一次生成分镜。|Applies to the combined shot duration for the selected passage, not a single clip. Approximate duration allows a 10% or 2-second tolerance. Applies to the next storyboard generation.
+取消|Cancel
+保存要求|Save requirement
+
 分镜补充要求|Additional storyboard direction
 选填|Optional
 例如：增加打戏的时长，结合人物能力和场景，适当扩写打斗动作与攻防细节，保持剧情因果、胜负结果和原有台词不变。|Example: Extend the fight sequence and elaborate its actions and exchanges based on character abilities and the setting, while preserving causality, the outcome and original dialogue.

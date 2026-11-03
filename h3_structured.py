@@ -1,3 +1,4 @@
+import segment_timing
 """h3-structured-v2: the LLM only plans structured JSON clips; code renders the prompt.
 
 The model never types reference labels or asset names into prompt text. It refers to
@@ -742,6 +743,8 @@ def ask_rows(api, task, cat, rules, payload, chunk_lines, script_lines, coverage
     task_instruction=instruction(rules)
     if payload.get('storyboard_requirements'):
         task_instruction+='\n用户的分镜补充要求见storyboard_requirements。仅在剧本和当前片段范围内，合理增加反应镜头、停顿、细节和调度；打戏可结合人物能力与场景补全攻防过程、适当增加镜头数量和合理时长，但保留原事件和胜负结果；按相关场景增加镜头表现，不把要求机械重复到每镜；保持事件因果、人物动机及原台词，不新增剧情、角色或台词，不改输出schema。要求与剧本或模型硬限制冲突时，以剧本和硬限制为准。'
+    if payload.get('timing_constraint'):
+        task_instruction+='\n指定段落有独立的银幕时长预算timing_constraint，seconds是整段目标，part_seconds是本次片段建议分配的秒数，不能把整段时长误当一个shot时长。请展开为多个有实际动作变化、反应或机位意义的shots，满足累计时长；原文很短不代表表演很短。只计当前指定动作段落，不用前后其他剧情凑时间。台词仅按给定编号使用一次，无台词时line_ids为空；仍遵循每段模型时长上限。'
     messages = [{'role': 'system', 'content': task_instruction}, {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}]
     diag = task.setdefault('h3v2_diagnostics', [])
     errors = []
@@ -782,10 +785,11 @@ def plan(api, p, task):
     if not cat:
         raise ValueError('请先提取或添加参考资产，再生成 H3 结构化分镜；无人物短片可使用场景或道具')
     script_lines = dialogue_lines(p['script'], cat)
-    parts = chunks(p['script'])
+    parts = segment_timing.partition(p,chunks)
     storyboard.progress(api, task, 'h3v2_profiles', 0, len(parts))
     profiles = asset_profiles(api, task, cat)
     shots = []
+    timing_rows=[]
     previous = None
     stats = task.setdefault('h3v2_stats', {'chunks': []})
     for index, part in enumerate(parts):
@@ -797,7 +801,7 @@ def plan(api, p, task):
             payload = {'task': '把 script_chunk 拆成视频 shots。只处理本片段，不要提前写后面的剧情。',
                        'video_model': model, 'video_model_rules': rules, 'scene_heading': part['heading'], 'scene_meta': part['scene_meta'],
                        'script_chunk': text, 'storyboard_requirements':p.get('storyboard_requirements',''), 'previous_shot': previous, 'assets': llm_catalog(cat),
-                       'dialogue_in_chunk': llm_lines(chunk_lines, cat)}
+                       'dialogue_in_chunk': llm_lines(chunk_lines, cat),'timing_constraint':part.get('timing_constraint')}
             return ask_rows(api, task, cat, rules, payload, chunk_lines, script_lines, True, 12, tag)
         skip_err = None
         try:
@@ -827,12 +831,33 @@ def plan(api, p, task):
             continue
         stats['chunks'].append({'chunk': label, 'attempts': attempts, 'shots': len(rows), 'status': 'ok'})
         for row in rows:
+            if part.get('timing_constraint'):row['_timing_constraint_id']=part['timing_constraint']['id']
+            timing_rows.append(row)
             shot = build_shot(api, p, to_plan(row, cat, profiles), row, mode, model)
             shots.append(shot)
         last = rows[-1]
         previous = {'title': last['title'], 'description_zh': last['description_zh'][:200],
                     'cast': last.get('cast'), 'scene': last.get('scene')}
         task['storyboard_draft'] = copy.deepcopy(shots)
+    if p.get('segment_timings'):
+        def extend_budget(budget,existing,seconds,count):
+            storyboard.progress(api,task,'h3v2_timing',len(existing),math.ceil(budget['seconds']/rules['max']))
+            payload={'task':'为指定动作段落补充新的中间镜头，放在已有结尾镜头之前；不要重演开头或终局，不新增事件、角色、台词。所有line_ids必须为空。用不同的观察与连贯动作扩展实际表演，不要复制旧镜头、静止凑时长或只写字幕。',
+                'script_chunk':budget['quote'],'storyboard_requirements':p.get('storyboard_requirements',''),'timing_constraint':dict(budget,part_seconds=seconds),
+                'existing_shots':[{'title':x['title'],'description':x['description_zh']} for x in existing],
+                'assets':llm_catalog(cat),'dialogue_in_chunk':[],'video_model':model,'video_model_rules':rules}
+            got,_=ask_rows(api,task,cat,rules,payload,[],script_lines,False,count,'扩展段落时长')
+            if any(c.get('line_ids') for row in got for c in row['clips']):raise ValueError('扩展镜头不能重复原台词')
+            return got
+        timing_rows,reports=segment_timing.expand(p,timing_rows,rules,extend_budget)
+        shots=[]
+        for row in timing_rows:
+            shot=build_shot(api,p,to_plan(row,cat,profiles),row,mode,model)
+            if row.get('_timing_constraint_id'):
+                shot['timing_constraint_id']=row['_timing_constraint_id']
+                shot['timing_constraint_quote']=next(b['quote'] for b in p['segment_timings'] if b['id']==row['_timing_constraint_id'])
+            shots.append(shot)
+        task['segment_timing_report']=reports
     stats['seconds'] = round(time.time() - started, 1)
     stats['shots'] = len(shots)
     skipped = task.get('h3v2_skipped') or []
