@@ -1,5 +1,5 @@
 """Shotdesk: file-backed production desk, literal media requests, resumable jobs."""
-import base64, copy, hashlib, json, math, mimetypes, os, re, subprocess, threading, time, uuid
+import base64, gzip, copy, hashlib, json, math, mimetypes, os, re, subprocess, threading, time, uuid
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import urllib.request, urllib.error, urllib.parse
@@ -1401,7 +1401,12 @@ APP_VERSION='0.1.0-preview.1'
 class Handler(BaseHTTPRequestHandler):
     def log_message(self,*args): pass
     def reply(self,obj,status=200):
-        raw=json.dumps(obj,ensure_ascii=False).encode(); self.send_response(status); self.send_header('Content-Type','application/json; charset=utf-8'); self.send_header('Content-Length',str(len(raw))); self.end_headers(); self.wfile.write(raw)
+        raw=json.dumps(obj,ensure_ascii=False).encode()
+        compressed=len(raw)>2048 and 'gzip' in self.headers.get('Accept-Encoding','')
+        if compressed:raw=gzip.compress(raw,compresslevel=1)
+        self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Vary','Accept-Encoding')
+        if compressed:self.send_header('Content-Encoding','gzip')
+        self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
     def serve_media(self,path):
         size=path.stat().st_size;start=0;end=size-1;partial=False
         value=self.headers.get('Range')
@@ -1470,7 +1475,7 @@ class Handler(BaseHTTPRequestHandler):
             if unread:return self.reply({'project_id':unread[1],'items':[v for v in media_items(load(unread[1])) if not v['read']]})
             if path=='/api/trash':return self.reply(TRASH.listing())
             if path=='/api/trash/logs':return self.reply(TRASH.logs())
-            if path=='/api/jobs': return self.reply(Q.list())
+            if path=='/api/jobs': return self.reply(Q.list(summary=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get('view')==['summary']))
             if path=='/api/shot-schema':
                 return self.reply({'example':{'id':'镜头稳定ID','title':'镜头标题','description':'剧情、动作和台词','duration':4,'image_prompt':'首帧画面描述','video_prompt':'Duration: 4s\nCamera slowly moves toward the character.','asset_ids':[],'video_override':None,'video_resolution':None},'video_modes':{'endpoint':'/api/video-modes','scope':'project_default_with_shot_override','fields':['video_mode','video_model'],'precedence':'video_override优先，其余跟随项目；旧镜头字段不覆盖项目默认','shot_override_field':'video_override: null或{mode,model}','catalog':'/api/model-catalog','supported_modes':list(VIDEO_STRATEGIES),'guide_fields':['reference_audio','reference_video'],'reference':'关联资产图直接生视频，不要求镜头image','first_frame':'使用镜头当前image，旧镜头默认'},'video_resolution':{'field':'video_resolution','scope':'project_default_with_independent_shot_override','format':'null or {preset:240p/360p/480p/720p/1080p/2k} or {preset:custom,width:720,height:480}','presets':{k:list(v) for k,v in VIDEO_RESOLUTIONS.items()},'precedence':'shot.video_resolution优先，其次video_override.resolution兼容字段，其次项目video_resolution；缺省沿用模型原尺寸','custom_orientation':'自定义宽高直接使用，不按项目画幅交换','capability':'model-catalog.videos[].supports_resolution；不支持的模型沿用原生尺寸','aliases':'canonical_model与legacy_resolution用于合并显示，旧模型ID仍可调用'},'storyboard_prompting':{'default_scheme':'h3-structured-v2','skill':'GET /api/storyboard-skill?project_id=<pid>','new_h3_format':'h3-structured-v2','scheme':'h3-structured-v2','original_rows':'shot.huobao_original','execution':'Structured plan and source dialogue IDs rendered by h3_structured.py; optional legacy formats are preserved','fields':['dialogue','timing','prompt_format','prompt_video_mode','prompt_language','source_contract','director_plan','coverage_timeline'],'source_contract':'Huobao-native-v1 does not generate source_contract/director_plan or enforce canonical dialogue. Original tool rows stored as huobao_original.','prompt_language':{'project_field':'prompt_language','values':['zh','en'],'default':'zh','scope':'director prose follows project language; original dialogue stays verbatim; protocol tokens unchanged'},'draft':'Huobao-native-v1 preserves raw @asset names; submit replaces with @图片N名字 using actual input order. Legacy H3 still uses Subject/Picture.','timing':'engineering estimate, not audio/visual review'},'asset_mentions':{'catalog':'GET /api/projects/<pid>/mention-catalog','preview':'POST /api/projects/<pid>/preview-prompt {shot_id,kind:image/video} or {shot,kind}','fields':['prompt_mentions','asset_ids','character_looks'],'binding':'prompt_mentions[label]={asset_id,look_id}; @label binds stable IDs; missing mapping resolves only unique current label','rule':'save synchronizes known mentions, generation compiles actual reference indices; original_prompt and reference_bindings stored in job/version','supported':'shot image prompts with reference-capable image models and reference/video_reference video prompts; other video modes reject @asset tags'},'duration':{'type':'number','exclusiveMinimum':0,'decimals':True,'model_limits':'平台不设统一上下限；实际可生成时长受当前ComfyUI节点/模型、帧数及资源限制，不会静默截短','prompt_line':'Legacy: Duration: <number>s; huobao-native-v1 keeps duration separate and never adds or rewrites a prompt line','rules':['创建镜头时填写 duration；服务端自动补全或校正 Duration 行','仅改 duration 时同步提示词；仅改 Duration 行时同步 duration','两处同时修改且矛盾时，以 duration 数字字段为准','不要在叙事正文重复总时长，不会替换动作中的其他时间点']}})
             if path=='/api/projects':
@@ -1482,7 +1487,7 @@ class Handler(BaseHTTPRequestHandler):
             match=re.fullmatch('/api/projects/([a-f0-9]{32})(/jobs)?',path)
             if match:
                 pid=match[1]
-                return self.reply(Q.list(pid) if match[2] else load(pid))
+                return self.reply(Q.list(pid,summary=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get('view')==['summary']) if match[2] else load(pid))
             public_docs={'/agent/setup.en.md':ROOT/'docs/local-setup.en.md','/agent/setup.md':ROOT/'docs/local-setup.md','/agent/setup-skill.md':ROOT/'docs/skills/shotdesk-setup/SKILL.md','/agent/operations.md':ROOT/'docs/operations.md','/agent/release-notes.md':ROOT/'docs/release-notes.md','/AGENTS.md':ROOT/'AGENTS.md','/llms.txt':ROOT/'docs/llms.txt','/agent/guide.md':ROOT/'docs/agent-control.md','/agent/guide.en.md':ROOT/'docs/agent-control.en.md','/docs/agent-control.md':ROOT/'docs/agent-control.md','/README.md':ROOT/'README.md','/自检接入方案.md':ROOT/'自检接入方案.md','/agent/review.md':ROOT/'自检接入方案.md','/agent':ROOT/'static/agent.html','/agent/':ROOT/'static/agent.html'}
             if path in public_docs:f=public_docs[path]
             elif path.startswith('/media/'): return self.serve_media(local_file(path))

@@ -403,9 +403,13 @@ class TaskQueue:
             if j.get('kind')==kind and j.get('target_id')==target_id and j.get('status') in ACTIVE:raise ValueError('相同任务已在队列中')
     def public(self,pid,j):
         keep={k:v for k,v in j.items() if k not in ('request','snapshot','_llm_skill_config','reference_sha256','script_skill_text','extraction_skill_text','storyboard_skill_text','storyboard_official_text','huobao_prompt_generator_text','huobao_trace','huobao_rows','huobao_asset_prompt_draft','storyboard_draft','storyboard_prompt_diagnostics','storyboard_json_diagnostics','storyboard_planning_parts','storyboard_seed_parts','storyboard_prompt_parts','storyboard_seed_prompts','storyboard_mode_official','director_scenes','director_location_context','h3v2_diagnostics','h3v2_profiles')};keep['project_id']=pid;keep.setdefault('project_name',pid[:8]);return keep
-    def list(self,pid=None):
-        with self.list_lock:return self._list(pid)
-    def _list(self,pid=None):
+    def queue_summary(self,j):
+        # Polling needs status and log fields, never media bindings or generation inputs.
+        fields={'id','project_id','project_name','kind','target','target_id','operation','title','model','status','phase','created','started_at','finished_at','timing_approximate','batch_id','video_duration','error','cancel_error','url','speech_remote_id','storyboard_progress','preparation_progress','preparation_results','storyboard_resumed_segments','storyboard_resumed_prompts','storyboard_quality_notes','storyboard_repairs','huobao_warnings','llm_skill_trace'}
+        return {k:v for k,v in j.items() if k in fields}
+    def list(self,pid=None,summary=False):
+        with self.list_lock:return self._list(pid,summary)
+    def _list(self,pid=None,summary=False):
         jobs=[];projects={}
         files=(self.app.project(pid).parent/'jobs').glob('*.json') if pid else self.app.DATA.glob('*/jobs/*.json')
         for f in files:
@@ -413,12 +417,12 @@ class TaskQueue:
             try:
                 stamp=f.stat();key=[stamp.st_mtime_ns,stamp.st_size];cache=self.list_cache.get(str(f));project_id=f.parent.parent.name
                 if cache and cache[0]==key:
-                    jobs.append(copy.deepcopy(cache[1]));continue
+                    jobs.append(copy.deepcopy(self.queue_summary(cache[1]) if summary else cache[1]));continue
                 index=f.parent/'.queue-index'/f.name
                 try:
                     record=json.loads(index.read_text())
                     if record['stamp']==key:
-                        self.list_cache[str(f)]=(key,record['job']);jobs.append(copy.deepcopy(record['job']));continue
+                        self.list_cache[str(f)]=(key,record['job']);jobs.append(copy.deepcopy(self.queue_summary(record['job']) if summary else record['job']));continue
                 except (OSError,ValueError,KeyError,TypeError):pass
                 j=json.loads(f.read_text())
                 if 'kind' not in j:continue
@@ -428,7 +432,7 @@ class TaskQueue:
                 if not j.get('finished_at') and j['status']=='completed':
                     version=next((v for s in p['shots']+p['assets'] for v in s.get('versions',[]) if v.get('id')==j['id']),{})
                     if version.get('created'):j['finished_at']=version['created']
-                row=self.public(project_id,j);self.list_cache[str(f)]=(key,row);jobs.append(copy.deepcopy(row))
+                row=self.public(project_id,j);self.list_cache[str(f)]=(key,row);jobs.append(copy.deepcopy(self.queue_summary(row) if summary else row))
                 # Discard large generation inputs before caching. The full job is untouched.
                 try:
                     if f.stat().st_mtime_ns==key[0]:

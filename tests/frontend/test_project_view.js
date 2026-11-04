@@ -19,12 +19,12 @@ globalThis.run=async()=>{
  // A queue response arriving here must not render or persist default tab.
  if(p&&!projectOpening){tab='story';render()}
  assert.equal(JSON.parse(entries.get('shotdesk:view:project')).tab,'assets');
- requests.get('projects/project/jobs')([]);await opening;
+ requests.get('projects/project/jobs?view=summary')([]);await opening;
  assert.equal(tab,'assets');assert.equal(assetSelected,'actor');assert.equal(renders.length,2);
  // Competing project opens cannot restore an older late response.
  const older=open('older');await Promise.resolve();const newer=open('newer');await Promise.resolve();
- requests.get('projects/newer')({id:'newer',assets:[],shots:[]});requests.get('projects/newer/jobs')([]);await newer;
- requests.get('projects/older')({id:'older',assets:[],shots:[]});requests.get('projects/older/jobs')([]);await older;
+ requests.get('projects/newer')({id:'newer',assets:[],shots:[]});requests.get('projects/newer/jobs?view=summary')([]);await newer;
+ requests.get('projects/older')({id:'older',assets:[],shots:[]});requests.get('projects/older/jobs?view=summary')([]);await older;
  assert.equal(p.id,'newer');assert.equal(projectOpening,false);
 };`,context);
 context.run().then(()=>console.log('PASS project renders before delayed jobs without losing asset tab; latest project open wins')).catch(e=>{console.error(e);process.exitCode=1});

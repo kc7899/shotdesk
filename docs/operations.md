@@ -45,3 +45,8 @@ Shell 的重定向由宿主机完成。备份文件包含密钥，限制访问�
 ## 网络与凭据
 
 默认只开放到本机。需要给其他机器访问时设置工作台密码/令牌与 HTTPS，再配置监听地址。工作台认证不保护独立开放的 ComfyUI/LLM/IndexTTS 端口。本版为单用户预览工具，没有账户隔离、团队权限或公网托管承诺。
+
+
+## Browser polling performance
+
+Browser job polling uses `?view=summary` to exclude prompts, input images, reference bindings and generated result bodies while preserving task states, timings, logs and controls. Default job endpoints retain their existing full response for Agents. JSON responses negotiate gzip above 2 KiB. Task histories and media are preserved.
